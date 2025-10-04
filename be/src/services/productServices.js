@@ -1,4 +1,5 @@
-const Product = require("../models/products");
+const db = require('../models'); // index.js
+const Product = db.Product;      // Product đã init với sequelize
 
 const productService = {
   getAllProducts: async () => {
