@@ -1,12 +1,14 @@
 const express = require('express');
 const sequelize = require('./src/config/db');
 const productRoutes = require('./src/routes/productRoutes');
+const uploadRoutes = require('./src/routes/uploadRoutes'); // 🆕 thêm upload routes
 
 const app = express();
 app.use(express.json());
 
 // Routes
 app.use('/api/products', productRoutes);
+app.use('/api/upload', uploadRoutes); // 🆕 thêm route upload ảnh
 
 // Kết nối DB và chạy server
 sequelize.sync({ alter: false })
