@@ -5,7 +5,7 @@ module.exports = {
   HOST: "127.0.0.1",   // hoặc IP của DB
   USER: "root",        // user MySQL của bạn
   PASSWORD: "123123",        // password MySQL (điền nếu có)
-  DB: "food",       // tên database bạn tạo
+  DB: "fastfood_poc",       // tên database bạn tạo
   dialect: "mysql",
   pool: {
     max: 5,
