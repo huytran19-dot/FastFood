@@ -1,0 +1,19 @@
+{
+  "name": "fastfood-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:admin\" \"npm run dev:backend\"",
+    "dev:web": "cd frontend/web && npm run dev",
+    "dev:admin": "cd frontend/admin/project && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "concurrently \"npm run dev:web\" \"npm run dev:admin\"",
+    "install:all": "cd frontend/web && npm install && cd ../../frontend/admin/project && npm install && cd ../../../backend && npm install",
+    "build:web": "cd frontend/web && npm run build",
+    "build:admin": "cd frontend/admin/project && npm run build",
+    "build:all": "npm run build:web && npm run build:admin"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
