@@ -10,7 +10,7 @@ export function Login() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, role } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -20,12 +20,9 @@ export function Login() {
 
     try {
       await login(email, password);
-
-      if (email === 'admin@fastfood.vn') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/restaurant/dashboard');
-      }
+      
+      // Admin app only - redirect to admin dashboard
+      navigate('/admin/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập thất bại');
     } finally {
@@ -85,17 +82,19 @@ export function Login() {
         </form>
 
         <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-600 text-center">Tài khoản demo:</p>
-          <div className="mt-3 space-y-2 text-sm">
+          <p className="text-sm text-gray-600 text-center">Tài khoản demo Admin:</p>
+          <div className="mt-3 text-sm">
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="font-medium text-gray-900">Admin</p>
-              <p className="text-gray-600">admin@fastfood.vn / admin123</p>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="font-medium text-gray-900">Chủ nhà hàng</p>
-              <p className="text-gray-600">owner@fastfood.vn / owner123</p>
+              <p className="text-gray-600">admin@fastfood.com / admin123</p>
             </div>
           </div>
+          <p className="text-xs text-gray-500 text-center mt-4">
+            Chủ nhà hàng vui lòng đăng nhập tại <br/>
+            <a href="http://localhost:5175" target="_blank" rel="noopener noreferrer" className="font-medium text-[#FF4D4F] hover:underline">
+              http://localhost:5175
+            </a>
+          </p>
         </div>
       </div>
     </div>

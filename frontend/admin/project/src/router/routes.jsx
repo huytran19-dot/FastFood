@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from '../auth/AuthContext';
+import { AuthProvider } from '../auth/AuthContext';
 import { ProtectedRoute } from '../auth/ProtectedRoute';
 import { AppShell } from '../components/layout/AppShell';
 import { ToastProvider } from '../components/ui/Toast';
@@ -13,30 +13,6 @@ import { AdminPayments } from '../pages/admin/Payments';
 import { AdminDrones } from '../pages/admin/Drones';
 import { AdminDeliveries } from '../pages/admin/Deliveries';
 import { AdminAnalytics } from '../pages/admin/Analytics';
-import { RestaurantDashboard } from '../pages/restaurant/Dashboard';
-import { RestaurantMenu } from '../pages/restaurant/Menu';
-import { RestaurantOrders } from '../pages/restaurant/Orders';
-import { RestaurantDrones } from '../pages/restaurant/Drones';
-import { RestaurantDeliveries } from '../pages/restaurant/Deliveries';
-import { RestaurantProfile } from '../pages/restaurant/Profile';
-
-function RootRedirect() {
-  const { isAuthenticated, role } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (role === 'admin') {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-
-  if (role === 'restaurant_owner') {
-    return <Navigate to="/restaurant/dashboard" replace />;
-  }
-
-  return <Navigate to="/login" replace />;
-}
 
 export function AppRouter() {
   return (
@@ -45,7 +21,7 @@ export function AppRouter() {
         <ToastProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<RootRedirect />} />
+            <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 
             <Route
               path="/admin/*"
@@ -61,24 +37,6 @@ export function AppRouter() {
                       <Route path="drones" element={<AdminDrones />} />
                       <Route path="deliveries" element={<AdminDeliveries />} />
                       <Route path="analytics" element={<AdminAnalytics />} />
-                    </Routes>
-                  </AppShell>
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/restaurant/*"
-              element={
-                <ProtectedRoute roles={['restaurant_owner']}>
-                  <AppShell>
-                    <Routes>
-                      <Route path="dashboard" element={<RestaurantDashboard />} />
-                      <Route path="menu" element={<RestaurantMenu />} />
-                      <Route path="orders" element={<RestaurantOrders />} />
-                      <Route path="drones" element={<RestaurantDrones />} />
-                      <Route path="deliveries" element={<RestaurantDeliveries />} />
-                      <Route path="profile" element={<RestaurantProfile />} />
                     </Routes>
                   </AppShell>
                 </ProtectedRoute>

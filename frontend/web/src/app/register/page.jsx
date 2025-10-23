@@ -4,13 +4,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useNavigate, Link } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
-  const [role, setRole] = useState("user")
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -44,8 +42,10 @@ export default function RegisterPage() {
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
-        role
+        role: 'user'
       })
+      
+      // Redirect to home page
       navigate("/")
     } catch (error) {
       console.error('Registration error:', error)
@@ -132,27 +132,6 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   required 
                 />
-              </div>
-
-              {/* Role Selection */}
-              <div>
-                <Label>Account Type</Label>
-                <RadioGroup value={role} onValueChange={setRole} className="mt-2">
-                  <div className="flex items-center space-x-2 rounded-lg border border-border p-3">
-                    <RadioGroupItem value="user" id="user" />
-                    <Label htmlFor="user" className="flex-1 cursor-pointer">
-                      <div className="font-medium">Customer</div>
-                      <div className="text-sm text-muted-foreground">Order food and track deliveries</div>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 rounded-lg border border-border p-3">
-                    <RadioGroupItem value="restaurant_owner" id="restaurant_owner" />
-                    <Label htmlFor="restaurant_owner" className="flex-1 cursor-pointer">
-                      <div className="font-medium">Restaurant Owner</div>
-                      <div className="text-sm text-muted-foreground">Manage restaurant and orders</div>
-                    </Label>
-                  </div>
-                </RadioGroup>
               </div>
 
               <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
