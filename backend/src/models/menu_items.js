@@ -1,19 +1,11 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('orders', {
+  return sequelize.define('menuItems', {
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true
-    },
-    customer_id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id'
-      }
     },
     restaurant_id: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -23,22 +15,30 @@ module.exports = function(sequelize, DataTypes) {
         key: 'id'
       }
     },
-    total_price: {
+    name: {
+      type: DataTypes.STRING(100),
+      allowNull: false
+    },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    price: {
       type: DataTypes.DECIMAL(10,2),
       allowNull: false
     },
-    delivery_address: {
+    image_url: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: true
     },
-    status: {
-      type: DataTypes.ENUM('PENDING','CONFIRMED','PREPARING','DELIVERING','COMPLETED','CANCELLED'),
-      allowNull: false,
-      defaultValue: "PENDING"
+    is_available: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: 1
     }
   }, {
     sequelize,
-    tableName: 'orders',
+    tableName: 'menu_items',
     timestamps: true,
     indexes: [
       {
@@ -50,24 +50,17 @@ module.exports = function(sequelize, DataTypes) {
         ]
       },
       {
-        name: "idx_orders_customer",
-        using: "BTREE",
-        fields: [
-          { name: "customer_id" },
-        ]
-      },
-      {
-        name: "idx_orders_restaurant",
+        name: "idx_menu_items_restaurant",
         using: "BTREE",
         fields: [
           { name: "restaurant_id" },
         ]
       },
       {
-        name: "idx_orders_status",
+        name: "idx_menu_items_available",
         using: "BTREE",
         fields: [
-          { name: "status" },
+          { name: "is_available" },
         ]
       },
     ]

@@ -1,34 +1,29 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  return cart_items.init(sequelize, DataTypes);
-}
-
-class cart_items extends Sequelize.Model {
-  static init(sequelize, DataTypes) {
-  return super.init({
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('cartItems', {
     id: {
       autoIncrement: true,
-      type: DataTypes.BIGINT,
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true
     },
     cart_id: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       references: {
         model: 'carts',
         key: 'id'
       }
     },
-    sku_id: {
-      type: DataTypes.BIGINT,
+    item_id: {
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       references: {
-        model: 'skus',
+        model: 'menu_items',
         key: 'id'
       }
     },
-    qty: {
+    quantity: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 1
@@ -36,6 +31,11 @@ class cart_items extends Sequelize.Model {
     note: {
       type: DataTypes.STRING(255),
       allowNull: true
+    },
+    added_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP')
     }
   }, {
     sequelize,
@@ -51,20 +51,19 @@ class cart_items extends Sequelize.Model {
         ]
       },
       {
-        name: "cart_id",
+        name: "fk_cart_items_item",
+        using: "BTREE",
+        fields: [
+          { name: "item_id" },
+        ]
+      },
+      {
+        name: "idx_cart_items_cart",
         using: "BTREE",
         fields: [
           { name: "cart_id" },
         ]
       },
-      {
-        name: "sku_id",
-        using: "BTREE",
-        fields: [
-          { name: "sku_id" },
-        ]
-      },
     ]
   });
-  }
-}
+};

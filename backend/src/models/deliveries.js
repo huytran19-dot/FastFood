@@ -1,45 +1,48 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('orders', {
+  return sequelize.define('deliveries', {
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true
     },
-    customer_id: {
+    order_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'orders',
         key: 'id'
       }
     },
-    restaurant_id: {
+    drone_id: {
       type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
+      allowNull: true,
       references: {
-        model: 'restaurants',
+        model: 'drones',
         key: 'id'
       }
     },
-    total_price: {
-      type: DataTypes.DECIMAL(10,2),
-      allowNull: false
-    },
-    delivery_address: {
+    start_location: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: true
+    },
+    end_location: {
+      type: DataTypes.STRING(255),
+      allowNull: true
     },
     status: {
-      type: DataTypes.ENUM('PENDING','CONFIRMED','PREPARING','DELIVERING','COMPLETED','CANCELLED'),
-      allowNull: false,
-      defaultValue: "PENDING"
+      type: DataTypes.STRING(50),
+      allowNull: true
+    },
+    delivered_at: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'orders',
-    timestamps: true,
+    tableName: 'deliveries',
+    timestamps: false,
     indexes: [
       {
         name: "PRIMARY",
@@ -50,21 +53,21 @@ module.exports = function(sequelize, DataTypes) {
         ]
       },
       {
-        name: "idx_orders_customer",
+        name: "idx_deliveries_order",
         using: "BTREE",
         fields: [
-          { name: "customer_id" },
+          { name: "order_id" },
         ]
       },
       {
-        name: "idx_orders_restaurant",
+        name: "idx_deliveries_drone",
         using: "BTREE",
         fields: [
-          { name: "restaurant_id" },
+          { name: "drone_id" },
         ]
       },
       {
-        name: "idx_orders_status",
+        name: "idx_deliveries_status",
         using: "BTREE",
         fields: [
           { name: "status" },

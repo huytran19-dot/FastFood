@@ -1,44 +1,36 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('orders', {
+  return sequelize.define('payments', {
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true
     },
-    customer_id: {
+    order_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'orders',
         key: 'id'
-      }
+      },
+      unique: "fk_payments_order"
     },
-    restaurant_id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-      references: {
-        model: 'restaurants',
-        key: 'id'
-      }
-    },
-    total_price: {
+    amount: {
       type: DataTypes.DECIMAL(10,2),
       allowNull: false
     },
-    delivery_address: {
-      type: DataTypes.STRING(255),
-      allowNull: false
+    method: {
+      type: DataTypes.ENUM('COD','VNPAY','MOMO','BANK_TRANSFER'),
+      allowNull: true
     },
     status: {
-      type: DataTypes.ENUM('PENDING','CONFIRMED','PREPARING','DELIVERING','COMPLETED','CANCELLED'),
-      allowNull: false,
-      defaultValue: "PENDING"
+      type: DataTypes.ENUM('PENDING','PAID','FAILED','REFUNDED'),
+      allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'orders',
+    tableName: 'payments',
     timestamps: true,
     indexes: [
       {
@@ -50,21 +42,15 @@ module.exports = function(sequelize, DataTypes) {
         ]
       },
       {
-        name: "idx_orders_customer",
+        name: "uq_payments_order",
+        unique: true,
         using: "BTREE",
         fields: [
-          { name: "customer_id" },
+          { name: "order_id" },
         ]
       },
       {
-        name: "idx_orders_restaurant",
-        using: "BTREE",
-        fields: [
-          { name: "restaurant_id" },
-        ]
-      },
-      {
-        name: "idx_orders_status",
+        name: "idx_payments_status",
         using: "BTREE",
         fields: [
           { name: "status" },

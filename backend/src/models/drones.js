@@ -1,32 +1,40 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('carts', {
+  return sequelize.define('drones', {
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true
     },
-    user_id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id'
-      }
-    },
     restaurant_id: {
       type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: true,
+      allowNull: false,
       references: {
         model: 'restaurants',
         key: 'id'
       }
+    },
+    model: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    capacity: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    battery: {
+      type: DataTypes.DOUBLE,
+      allowNull: true
+    },
+    status: {
+      type: DataTypes.STRING(50),
+      allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'carts',
-    timestamps: true,
+    tableName: 'drones',
+    timestamps: false,
     indexes: [
       {
         name: "PRIMARY",
@@ -37,14 +45,7 @@ module.exports = function(sequelize, DataTypes) {
         ]
       },
       {
-        name: "idx_carts_user",
-        using: "BTREE",
-        fields: [
-          { name: "user_id" },
-        ]
-      },
-      {
-        name: "idx_carts_restaurant",
+        name: "idx_drones_restaurant",
         using: "BTREE",
         fields: [
           { name: "restaurant_id" },

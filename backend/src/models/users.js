@@ -1,43 +1,62 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  return users.init(sequelize, DataTypes);
-}
-
-class users extends Sequelize.Model {
-  static init(sequelize, DataTypes) {
-  return super.init({
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('users', {
     id: {
       autoIncrement: true,
-      type: DataTypes.BIGINT,
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true
     },
-    phone: {
-      type: DataTypes.STRING(15),
+    full_name: {
+      type: DataTypes.STRING(100),
+      allowNull: false
+    },
+    email: {
+      type: DataTypes.STRING(100),
       allowNull: false,
-      unique: "phone"
+      unique: "uq_users_email"
+    },
+    phone: {
+      type: DataTypes.STRING(20),
+      allowNull: true
     },
     password_hash: {
       type: DataTypes.STRING(255),
       allowNull: false
     },
-    first_name: {
-      type: DataTypes.STRING(60),
-      allowNull: true
-    },
-    last_name: {
-      type: DataTypes.STRING(60),
-      allowNull: true
-    },
-    email: {
-      type: DataTypes.STRING(255),
+    role_id: {
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
-      unique: "email"
+      references: {
+        model: 'roles',
+        key: 'id'
+      }
+    },
+    address: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    status: {
+      type: DataTypes.TINYINT,
+      allowNull: true,
+      defaultValue: 1
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
     }
   }, {
     sequelize,
     tableName: 'users',
-    timestamps: false,
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         name: "PRIMARY",
@@ -48,22 +67,20 @@ class users extends Sequelize.Model {
         ]
       },
       {
-        name: "phone",
-        unique: true,
-        using: "BTREE",
-        fields: [
-          { name: "phone" },
-        ]
-      },
-      {
-        name: "email",
+        name: "uq_users_email",
         unique: true,
         using: "BTREE",
         fields: [
           { name: "email" },
         ]
       },
+      {
+        name: "idx_users_role",
+        using: "BTREE",
+        fields: [
+          { name: "role_id" },
+        ]
+      },
     ]
   });
-  }
-}
+};

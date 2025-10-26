@@ -1,32 +1,41 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('carts', {
+  return sequelize.define('locations', {
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true
     },
-    user_id: {
+    drone_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'drones',
         key: 'id'
       }
     },
-    restaurant_id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+    latitude: {
+      type: DataTypes.DECIMAL(9,6),
+      allowNull: true
+    },
+    longitude: {
+      type: DataTypes.DECIMAL(9,6),
+      allowNull: true
+    },
+    altitude: {
+      type: DataTypes.DECIMAL(6,2),
+      allowNull: true
+    },
+    recorded_at: {
+      type: DataTypes.DATE,
       allowNull: true,
-      references: {
-        model: 'restaurants',
-        key: 'id'
-      }
+      defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP')
     }
   }, {
     sequelize,
-    tableName: 'carts',
-    timestamps: true,
+    tableName: 'locations',
+    timestamps: false,
     indexes: [
       {
         name: "PRIMARY",
@@ -37,17 +46,17 @@ module.exports = function(sequelize, DataTypes) {
         ]
       },
       {
-        name: "idx_carts_user",
+        name: "idx_locations_drone",
         using: "BTREE",
         fields: [
-          { name: "user_id" },
+          { name: "drone_id" },
         ]
       },
       {
-        name: "idx_carts_restaurant",
+        name: "idx_locations_time",
         using: "BTREE",
         fields: [
-          { name: "restaurant_id" },
+          { name: "recorded_at" },
         ]
       },
     ]

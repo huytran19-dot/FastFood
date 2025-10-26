@@ -9,6 +9,7 @@ import {
   userRoles
 } from './mockData';
 
+// ===== Mock Data =====
 let usersData = [...mockUsers];
 let restaurantsData = [...mockRestaurants];
 let ordersData = [...mockOrders];
@@ -16,13 +17,15 @@ let paymentsData = [...mockPayments];
 let dronesData = [...mockDrones];
 let deliveriesData = [...mockDeliveries];
 
+/* ==================== USERS ==================== */
 export async function getUsers() {
   return mockFetch([...usersData]);
 }
 
 export async function createUser(input) {
+  const newId = usersData.length ? Math.max(...usersData.map(u => u.user_id)) + 1 : 1;
   const newUser = {
-    user_id: Math.max(...usersData.map(u => u.user_id)) + 1,
+    user_id: newId,
     full_name: input.full_name || '',
     email: input.email || '',
     phone: input.phone,
@@ -31,116 +34,106 @@ export async function createUser(input) {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
-
   usersData.push(newUser);
-  userRoles[newUser.user_id] = input.role;
-
+  userRoles[newUser.user_id] = input.role ?? 'user';
   return mockFetch(newUser);
 }
 
 export async function updateUserRole(user_id, role) {
   const user = usersData.find(u => u.user_id === user_id);
-  if (!user) throw new Error('User not found');
-
+  if (!user) return mockFetch(null);
   userRoles[user_id] = role;
   user.updated_at = new Date().toISOString();
-
   return mockFetch({ ...user });
 }
 
 export async function toggleUserStatus(user_id) {
   const user = usersData.find(u => u.user_id === user_id);
-  if (!user) throw new Error('User not found');
-
+  if (!user) return mockFetch(null);
   user.status = user.status === 1 ? 0 : 1;
   user.updated_at = new Date().toISOString();
-
   return mockFetch({ ...user });
 }
 
+/* ==================== RESTAURANTS ==================== */
 export async function getRestaurants() {
   return mockFetch([...restaurantsData]);
 }
 
 export async function createRestaurant(input) {
+  const newId = restaurantsData.length ? Math.max(...restaurantsData.map(r => r.restaurant_id)) + 1 : 1;
   const newRestaurant = {
-    ...input,
-    restaurant_id: Math.max(...restaurantsData.map(r => r.restaurant_id)) + 1,
+    restaurant_id: newId,
+    name: input.name || 'Unnamed',
+    address: input.address || '',
+    phone: input.phone || '',
+    status: input.status ?? 1,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
-
   restaurantsData.push(newRestaurant);
   return mockFetch(newRestaurant);
 }
 
-export async function updateRestaurant(restaurant_id, patch) {
-  const idx = restaurantsData.findIndex(r => r.restaurant_id === restaurant_id);
-  if (idx === -1) throw new Error('Restaurant not found');
-
-  restaurantsData[idx] = {
-    ...restaurantsData[idx],
-    ...patch,
-    updated_at: new Date().toISOString()
-  };
-
-  return mockFetch({ ...restaurantsData[idx] });
+export async function toggleRestaurantStatus(restaurant_id) {
+  const restaurant = restaurantsData.find(r => r.restaurant_id === restaurant_id);
+  if (!restaurant) return mockFetch(null);
+  restaurant.status = restaurant.status === 1 ? 0 : 1;
+  restaurant.updated_at = new Date().toISOString();
+  return mockFetch({ ...restaurant });
 }
 
-export async function getOrders(params) {
-  let filtered = [...ordersData];
-
-  if (params?.status) {
-    filtered = filtered.filter(o => o.status === params.status);
-  }
-
-  if (params?.restaurant_id) {
-    filtered = filtered.filter(o => o.restaurant_id === params.restaurant_id);
-  }
-
-  return mockFetch(filtered);
-}
-
-export async function updateOrderStatus(order_id, status) {
-  const order = ordersData.find(o => o.order_id === order_id);
-  if (!order) throw new Error('Order not found');
-
-  order.status = status;
-  order.updated_at = new Date().toISOString();
-
-  return mockFetch({ ...order });
-}
-
-export async function getPayments() {
-  return mockFetch([...paymentsData]);
-}
-
+/* ==================== DRONES ==================== */
 export async function getDrones() {
   return mockFetch([...dronesData]);
 }
 
 export async function createDrone(input) {
+  const newId = dronesData.length ? Math.max(...dronesData.map(d => d.drone_id)) + 1 : 1;
   const newDrone = {
-    ...input,
-    drone_id: Math.max(...dronesData.map(d => d.drone_id)) + 1
+    drone_id: newId,
+    name: input.name || 'New Drone',
+    model: input.model || 'Generic Model',
+    status: input.status ?? 'idle',
+    battery_level: input.battery_level ?? 100,
+    last_maintenance: input.last_maintenance || new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
-
   dronesData.push(newDrone);
   return mockFetch(newDrone);
 }
 
 export async function updateDrone(drone_id, patch) {
   const idx = dronesData.findIndex(d => d.drone_id === drone_id);
-  if (idx === -1) throw new Error('Drone not found');
-
-  dronesData[idx] = { ...dronesData[idx], ...patch };
+  if (idx === -1) return mockFetch(null);
+  dronesData[idx] = {
+    ...dronesData[idx],
+    ...patch,
+    updated_at: new Date().toISOString()
+  };
   return mockFetch({ ...dronesData[idx] });
 }
 
+export async function toggleDroneStatus(drone_id) {
+  const drone = dronesData.find(d => d.drone_id === drone_id);
+  if (!drone) return mockFetch(null);
+  drone.status = drone.status === 'active' ? 'idle' : 'active';
+  drone.updated_at = new Date().toISOString();
+  return mockFetch({ ...drone });
+}
+
+/* ==================== ORDERS ==================== */
+export async function getOrders() {
+  return mockFetch([...ordersData]);
+}
+
+/* ==================== DELIVERIES ==================== */
 export async function getDeliveries() {
   return mockFetch([...deliveriesData]);
 }
 
-export function getUserRole(user_id) {
-  return userRoles[user_id];
+/* ==================== PAYMENTS ==================== */
+export async function getPayments() {
+  return mockFetch([...paymentsData]);
 }

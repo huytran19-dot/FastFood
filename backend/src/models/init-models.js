@@ -1,75 +1,78 @@
-const DataTypes = require("sequelize").DataTypes;
-const _addon_price = require("./addon_price");
-const _addons = require("./addons");
-const _cart_item_addons = require("./cart_item_addons");
-const _cart_items = require("./cart_items");
-const _carts = require("./carts");
-const _categories = require("./categories");
-const _order_item_addons = require("./order_item_addons");
-const _order_items = require("./order_items");
-const _orders = require("./orders");
-const _product_tags = require("./product_tags");
-const _products = require("./products");
-const _skus = require("./skus");
-const _users = require("./users");
+var DataTypes = require("sequelize").DataTypes;
+var _cartItems = require("./cart_items");
+var _carts = require("./carts");
+var _deliveries = require("./deliveries");
+var _drones = require("./drones");
+var _locations = require("./locations");
+var _menuItems = require("./menu_items");
+var _orderItems = require("./order_items");
+var _orders = require("./orders");
+var _payments = require("./payments");
+var _restaurants = require("./restaurants");
+var _roles = require("./roles");
+var _users = require("./users");
 
 function initModels(sequelize) {
-  const addon_price = _addon_price(sequelize, DataTypes);
-  const addons = _addons(sequelize, DataTypes);
-  const cart_item_addons = _cart_item_addons(sequelize, DataTypes);
-  const cart_items = _cart_items(sequelize, DataTypes);
-  const carts = _carts(sequelize, DataTypes);
-  const categories = _categories(sequelize, DataTypes);
-  const order_item_addons = _order_item_addons(sequelize, DataTypes);
-  const order_items = _order_items(sequelize, DataTypes);
-  const orders = _orders(sequelize, DataTypes);
-  const product_tags = _product_tags(sequelize, DataTypes);
-  const products = _products(sequelize, DataTypes);
-  const skus = _skus(sequelize, DataTypes);
-  const users = _users(sequelize, DataTypes);
+  var cartItems = _cartItems(sequelize, DataTypes);
+  var carts = _carts(sequelize, DataTypes);
+  var deliveries = _deliveries(sequelize, DataTypes);
+  var drones = _drones(sequelize, DataTypes);
+  var locations = _locations(sequelize, DataTypes);
+  var menuItems = _menuItems(sequelize, DataTypes);
+  var orderItems = _orderItems(sequelize, DataTypes);
+  var orders = _orders(sequelize, DataTypes);
+  var payments = _payments(sequelize, DataTypes);
+  var restaurants = _restaurants(sequelize, DataTypes);
+  var roles = _roles(sequelize, DataTypes);
+  var users = _users(sequelize, DataTypes);
 
-  addon_price.belongsTo(addons, { as: "addon", foreignKey: "addon_id"});
-  addons.hasMany(addon_price, { as: "addon_prices", foreignKey: "addon_id"});
-  cart_item_addons.belongsTo(addons, { as: "addon", foreignKey: "addon_id"});
-  addons.hasMany(cart_item_addons, { as: "cart_item_addons", foreignKey: "addon_id"});
-  order_item_addons.belongsTo(addons, { as: "addon", foreignKey: "addon_id"});
-  addons.hasMany(order_item_addons, { as: "order_item_addons", foreignKey: "addon_id"});
-  cart_item_addons.belongsTo(cart_items, { as: "cart_item", foreignKey: "cart_item_id"});
-  cart_items.hasMany(cart_item_addons, { as: "cart_item_addons", foreignKey: "cart_item_id"});
-  cart_items.belongsTo(carts, { as: "cart", foreignKey: "cart_id"});
-  carts.hasMany(cart_items, { as: "cart_items", foreignKey: "cart_id"});
-  products.belongsTo(categories, { as: "category", foreignKey: "category_id"});
-  categories.hasMany(products, { as: "products", foreignKey: "category_id"});
-  order_item_addons.belongsTo(order_items, { as: "order_item", foreignKey: "order_item_id"});
-  order_items.hasMany(order_item_addons, { as: "order_item_addons", foreignKey: "order_item_id"});
-  order_items.belongsTo(orders, { as: "order", foreignKey: "order_id"});
-  orders.hasMany(order_items, { as: "order_items", foreignKey: "order_id"});
-  product_tags.belongsTo(products, { as: "product", foreignKey: "product_id"});
-  products.hasMany(product_tags, { as: "product_tags", foreignKey: "product_id"});
-  skus.belongsTo(products, { as: "product", foreignKey: "product_id"});
-  products.hasMany(skus, { as: "skus", foreignKey: "product_id"});
-  cart_items.belongsTo(skus, { as: "sku", foreignKey: "sku_id"});
-  skus.hasMany(cart_items, { as: "cart_items", foreignKey: "sku_id"});
-  order_items.belongsTo(skus, { as: "sku", foreignKey: "sku_id"});
-  skus.hasMany(order_items, { as: "order_items", foreignKey: "sku_id"});
+  cartItems.belongsTo(carts, { as: "cart", foreignKey: "cart_id"});
+  carts.hasMany(cartItems, { as: "cart_items", foreignKey: "cart_id"});
+  deliveries.belongsTo(drones, { as: "drone", foreignKey: "drone_id"});
+  drones.hasMany(deliveries, { as: "deliveries", foreignKey: "drone_id"});
+  locations.belongsTo(drones, { as: "drone", foreignKey: "drone_id"});
+  drones.hasMany(locations, { as: "locations", foreignKey: "drone_id"});
+  cartItems.belongsTo(menuItems, { as: "item", foreignKey: "item_id"});
+  menuItems.hasMany(cartItems, { as: "cart_items", foreignKey: "item_id"});
+  orderItems.belongsTo(menuItems, { as: "item", foreignKey: "item_id"});
+  menuItems.hasMany(orderItems, { as: "order_items", foreignKey: "item_id"});
+  deliveries.belongsTo(orders, { as: "order", foreignKey: "order_id"});
+  orders.hasMany(deliveries, { as: "deliveries", foreignKey: "order_id"});
+  orderItems.belongsTo(orders, { as: "order", foreignKey: "order_id"});
+  orders.hasMany(orderItems, { as: "order_items", foreignKey: "order_id"});
+  payments.belongsTo(orders, { as: "order", foreignKey: "order_id"});
+  orders.hasOne(payments, { as: "payment", foreignKey: "order_id"});
+  carts.belongsTo(restaurants, { as: "restaurant", foreignKey: "restaurant_id"});
+  restaurants.hasMany(carts, { as: "carts", foreignKey: "restaurant_id"});
+  drones.belongsTo(restaurants, { as: "restaurant", foreignKey: "restaurant_id"});
+  restaurants.hasMany(drones, { as: "drones", foreignKey: "restaurant_id"});
+  menuItems.belongsTo(restaurants, { as: "restaurant", foreignKey: "restaurant_id"});
+  restaurants.hasMany(menuItems, { as: "menu_items", foreignKey: "restaurant_id"});
+  orders.belongsTo(restaurants, { as: "restaurant", foreignKey: "restaurant_id"});
+  restaurants.hasMany(orders, { as: "orders", foreignKey: "restaurant_id"});
+  users.belongsTo(roles, { as: "role", foreignKey: "role_id"});
+  roles.hasMany(users, { as: "users", foreignKey: "role_id"});
   carts.belongsTo(users, { as: "user", foreignKey: "user_id"});
-  users.hasOne(carts, { as: "cart", foreignKey: "user_id"});
-  orders.belongsTo(users, { as: "user", foreignKey: "user_id"});
-  users.hasMany(orders, { as: "orders", foreignKey: "user_id"});
+  users.hasMany(carts, { as: "carts", foreignKey: "user_id"});
+  orders.belongsTo(users, { as: "customer", foreignKey: "customer_id"});
+  users.hasMany(orders, { as: "orders", foreignKey: "customer_id"});
+  restaurants.belongsTo(users, { as: "approved_by_user", foreignKey: "approved_by"});
+  users.hasMany(restaurants, { as: "restaurants", foreignKey: "approved_by"});
+  restaurants.belongsTo(users, { as: "owner", foreignKey: "owner_id"});
+  users.hasMany(restaurants, { as: "owner_restaurants", foreignKey: "owner_id"});
 
   return {
-    addon_price,
-    addons,
-    cart_item_addons,
-    cart_items,
+    cartItems,
     carts,
-    categories,
-    order_item_addons,
-    order_items,
+    deliveries,
+    drones,
+    locations,
+    menuItems,
+    orderItems,
     orders,
-    product_tags,
-    products,
-    skus,
+    payments,
+    restaurants,
+    roles,
     users,
   };
 }

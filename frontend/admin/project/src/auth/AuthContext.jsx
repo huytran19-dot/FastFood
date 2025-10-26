@@ -1,52 +1,69 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { loginAdmin } from '../api/auth';
 
 const AuthContext = createContext(undefined);
 
 export function AuthProvider({ children }) {
   const [authState, setAuthState] = useState(() => {
-    const stored = localStorage.getItem('auth');
+    // Khôi phục từ sessionStorage khi F5 (refresh)
+    const stored = sessionStorage.getItem('auth');
     if (stored) {
       try {
+        console.log("🔄 [AuthContext] Restoring auth from sessionStorage");
         return JSON.parse(stored);
       } catch {
-        return { token: null, role: null, user_id: null, restaurant_ids: [] };
+        return { token: null, role: null, user_id: null, user: null, restaurant_ids: [] };
       }
     }
-    return { token: null, role: null, user_id: null, restaurant_ids: [] };
+    console.log("🔄 [AuthContext] No auth found - user must login");
+    return { token: null, role: null, user_id: null, user: null, restaurant_ids: [] };
   });
 
   useEffect(() => {
     if (authState.token) {
-      localStorage.setItem('auth', JSON.stringify(authState));
+      // Lưu vào sessionStorage (mất khi đóng tab, giữ khi F5)
+      sessionStorage.setItem('auth', JSON.stringify(authState));
+      console.log("💾 [AuthContext] Auth saved to sessionStorage");
     } else {
+      // Xóa hết khi logout
+      sessionStorage.removeItem('auth');
       localStorage.removeItem('auth');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      console.log("🗑️ [AuthContext] Auth cleared");
     }
   }, [authState]);
 
   const login = async (email, password) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (email === 'admin@fastfood.vn' && password === 'admin123') {
+    try {
+      console.log("🔐 [AuthContext] Calling API login...");
+      
+      // Call real API
+      const data = await loginAdmin(email, password);
+      
+      console.log("✅ [AuthContext] API response:", data);
+      
+      // Set auth state with real data from backend
       setAuthState({
-        token: 'mock-token-admin',
-        role: 'admin',
-        user_id: 1,
+        token: data.token,
+        role: 'admin', // Backend returns role in JWT
+        user_id: data.user.id,
+        user: data.user,
         restaurant_ids: []
       });
-    } else if (email === 'owner@fastfood.vn' && password === 'owner123') {
-      setAuthState({
-        token: 'mock-token-owner',
-        role: 'restaurant_owner',
-        user_id: 2,
-        restaurant_ids: [1]
-      });
-    } else {
-      throw new Error('Email hoặc mật khẩu không đúng');
+      
+      console.log("✅ [AuthContext] Auth state updated");
+    } catch (error) {
+      console.error("❌ [AuthContext] Login error:", error);
+      throw new Error(error.message || 'Email hoặc mật khẩu không đúng');
     }
   };
 
   const logout = () => {
-    setAuthState({ token: null, role: null, user_id: null, restaurant_ids: [] });
+    console.log("🚪 [AuthContext] Logging out...");
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setAuthState({ token: null, role: null, user_id: null, user: null, restaurant_ids: [] });
   };
 
   return (
