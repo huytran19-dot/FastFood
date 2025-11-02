@@ -5,15 +5,16 @@ async function testLogin() {
   try {
     const connection = await mysql.createConnection({
       host: '127.0.0.1',
+      port: 3307,
       user: 'root',
-      password: '123123',
+      password: 'huytran123',
       database: 'fastfood'
     });
 
     // Get user from database
     const [users] = await connection.execute(
       'SELECT * FROM users WHERE email = ?',
-      ['admin@fastfood.com']
+      ['huy@gmail.com']
     );
 
     if (users.length === 0) {

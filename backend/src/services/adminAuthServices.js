@@ -1,6 +1,7 @@
 // src/services/adminServices.js
-const { users, roles } = require('../models/init-models')(require('../config/db'));
-const bcrypt = require('bcrypt');
+const db = require('../models');
+const { users, roles } = db;
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const SECRET_KEY = process.env.JWT_SECRET || "SECRET_KEY";

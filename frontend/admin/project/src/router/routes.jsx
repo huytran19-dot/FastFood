@@ -11,8 +11,6 @@ import { AdminRestaurants } from '../pages/admin/Restaurants';
 import { AdminOrders } from '../pages/admin/Orders';
 import { AdminPayments } from '../pages/admin/Payments';
 import { AdminDrones } from '../pages/admin/Drones';
-import { AdminDeliveries } from '../pages/admin/Deliveries';
-import { AdminAnalytics } from '../pages/admin/Analytics';
 
 export function AppRouter() {
   return (
@@ -35,8 +33,6 @@ export function AppRouter() {
                       <Route path="orders" element={<AdminOrders />} />
                       <Route path="payments" element={<AdminPayments />} />
                       <Route path="drones" element={<AdminDrones />} />
-                      <Route path="deliveries" element={<AdminDeliveries />} />
-                      <Route path="analytics" element={<AdminAnalytics />} />
                     </Routes>
                   </AppShell>
                 </ProtectedRoute>

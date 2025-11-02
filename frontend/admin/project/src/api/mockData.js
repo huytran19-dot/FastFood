@@ -17,18 +17,27 @@ export const mockUsers = [
   },
   {
     user_id: 3,
-    full_name: "Trần Văn Khách",
-    email: "customer1@gmail.com",
+    full_name: "Phạm Văn Phở",
+    email: "pho.vietnam@gmail.com",
     status: 1,
-    created_at: "2025-01-05T00:00:00Z",
-    updated_at: "2025-01-05T00:00:00Z"
+    created_at: "2025-10-28T00:00:00Z",
+    updated_at: "2025-10-28T00:00:00Z"
+  },
+  {
+    user_id: 4,
+    full_name: "Trần Thị Pizza",
+    email: "pizza.italia@gmail.com",
+    status: 1,
+    created_at: "2025-10-29T00:00:00Z",
+    updated_at: "2025-10-29T00:00:00Z"
   }
 ];
 
 export const userRoles = {
   1: 'admin',
   2: 'restaurant_owner',
-  3: 'restaurant_owner'
+  3: 'restaurant_owner',
+  4: 'restaurant_owner'
 };
 
 export const mockRestaurants = [
@@ -39,10 +48,37 @@ export const mockRestaurants = [
     address: "123 Trần Hưng Đạo, Q1",
     phone: "0909000111",
     status: 1,
+    review_status: 'APPROVED',
     rating: 4.7,
     description: "Burger giao hàng bằng drone nhanh chóng",
     created_at: "2025-01-02T00:00:00Z",
-    updated_at: "2025-01-02T00:00:00Z"
+    updated_at: "2025-01-10T00:00:00Z"
+  },
+  {
+    restaurant_id: 2,
+    owner_id: 3,
+    name: "Phở Việt Express",
+    address: "456 Nguyễn Huệ, Q1",
+    phone: "0909000222",
+    status: 0,
+    review_status: 'PENDING',
+    rating: 0,
+    description: "Phở truyền thống giao nhanh bằng drone",
+    created_at: "2025-10-28T08:30:00Z",
+    updated_at: "2025-10-28T08:30:00Z"
+  },
+  {
+    restaurant_id: 3,
+    owner_id: 2,
+    name: "Pizza Italia Sky",
+    address: "789 Lê Lợi, Q3",
+    phone: "0909000333",
+    status: 0,
+    review_status: 'PENDING',
+    rating: 0,
+    description: "Pizza Ý chính gốc, giao tận nơi bằng drone",
+    created_at: "2025-10-29T14:20:00Z",
+    updated_at: "2025-10-29T14:20:00Z"
   }
 ];
 

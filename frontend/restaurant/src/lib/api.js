@@ -26,21 +26,18 @@ const handleResponse = async (response) => {
 export const authAPI = {
   // Login for restaurant owners
   async login(credentials) {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/restaurant/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(credentials),
     });
     
     const data = await handleResponse(response);
     
-    // Only allow owner role
-    if (data.user.role !== 'owner') {
-      throw new Error('Chỉ chủ nhà hàng mới được đăng nhập vào hệ thống này');
-    }
-    
     localStorage.setItem('authToken', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
     
     return data;
   },

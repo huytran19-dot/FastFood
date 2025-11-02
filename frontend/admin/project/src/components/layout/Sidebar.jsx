@@ -26,9 +26,7 @@ export function Sidebar() {
     { to: '/admin/restaurants', icon: Store, label: 'Nhà hàng' },
     { to: '/admin/orders', icon: ShoppingBag, label: 'Đơn hàng' },
     { to: '/admin/payments', icon: CreditCard, label: 'Thanh toán' },
-    { to: '/admin/drones', icon: Plane, label: 'Drone' },
-    { to: '/admin/deliveries', icon: TruckIcon, label: 'Giao hàng' },
-    { to: '/admin/analytics', icon: BarChart3, label: 'Phân tích' }
+    { to: '/admin/drones', icon: Plane, label: 'Drone' }
   ];
 
   const restaurantLinks = [
