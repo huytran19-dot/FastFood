@@ -1,9 +1,26 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Helper function to get auth token
+function getAuthToken() {
+  const stored = sessionStorage.getItem('auth');
+  if (stored) {
+    try {
+      const auth = JSON.parse(stored);
+      return auth.token;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /* ==================== USERS ==================== */
 export async function getUsers() {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/users`, {
-    credentials: 'include'
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   if (!response.ok) throw new Error('Failed to fetch users');
   const data = await response.json();
@@ -32,12 +49,29 @@ export async function updateUserRole(user_id, role) {
   return await response.json();
 }
 
-export async function toggleUserStatus(user_id) {
-  const response = await fetch(`${API_BASE_URL}/admin/users/${user_id}/toggle-status`, {
-    method: 'PUT',
-    credentials: 'include'
+export async function toggleUserStatus(user_id, status) {
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/admin/users/${user_id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ status })
   });
   if (!response.ok) throw new Error('Failed to toggle user status');
+  return await response.json();
+}
+
+export async function deleteUser(user_id) {
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/admin/users/${user_id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  if (!response.ok) throw new Error('Failed to delete user');
   return await response.json();
 }
 

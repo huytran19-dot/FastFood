@@ -31,6 +31,26 @@ class AdminController {
       res.status(400).json({ error: err.message });
     }
   }
+
+  static async deleteUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const result = await AdminService.deleteUser(userId);
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+
+  static async register(req, res) {
+    try {
+      const { email, password, full_name, phone } = req.body;
+      const result = await AdminService.createAdmin(email, password, full_name, phone);
+      res.status(201).json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
 }
 
 module.exports = AdminController;

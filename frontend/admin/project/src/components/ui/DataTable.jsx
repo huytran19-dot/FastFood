@@ -37,13 +37,13 @@ export function DataTable({ data, columns, onRowClick, emptyMessage = 'Kh√¥ng c√
   return (
     <div className="bg-white rounded-2xl shadow-md overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full table-auto">
           <thead className="bg-gray-50 border-b">
             <tr>
               {columns.map(column => (
                 <th
                   key={column.key}
-                  className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                  className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
                 >
                   {column.sortable ? (
                     <button
@@ -70,7 +70,7 @@ export function DataTable({ data, columns, onRowClick, emptyMessage = 'Kh√¥ng c√
                 className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors`}
               >
                 {columns.map(column => (
-                  <td key={column.key} className="px-6 py-4 text-sm text-gray-900">
+                  <td key={column.key} className="px-4 py-4 text-sm text-gray-900">
                     {column.render ? column.render(row) : row[column.key]}
                   </td>
                 ))}

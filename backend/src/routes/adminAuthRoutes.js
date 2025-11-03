@@ -23,7 +23,10 @@ const verifyAdmin = (req, res, next) => {
 // 🧠 Route đăng nhập (không cần middleware)
 router.post('/login', AdminController.login);
 
-// 👥 Route quản lý người dùng (cần xác thực admin)
+// � Route đăng ký admin mới (không cần middleware - hoặc có thể thêm verifyAdmin nếu chỉ admin mới tạo admin)
+router.post('/register', AdminController.register);
+
+// �👥 Route quản lý người dùng (cần xác thực admin)
 router.get('/users', verifyAdmin, AdminController.getUsers);
 router.patch('/users/:userId/status', verifyAdmin, AdminController.updateUserStatus);
 
