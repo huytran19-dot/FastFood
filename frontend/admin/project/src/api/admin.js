@@ -77,8 +77,11 @@ export async function deleteUser(user_id) {
 
 /* ==================== RESTAURANTS ==================== */
 export async function getRestaurants() {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/restaurants`, {
-    credentials: 'include'
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   if (!response.ok) throw new Error('Failed to fetch restaurants');
   const data = await response.json();
@@ -86,10 +89,13 @@ export async function getRestaurants() {
 }
 
 export async function createRestaurant(input) {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/restaurants`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
     body: JSON.stringify(input)
   });
   if (!response.ok) throw new Error('Failed to create restaurant');
@@ -97,28 +103,37 @@ export async function createRestaurant(input) {
 }
 
 export async function toggleRestaurantStatus(restaurant_id) {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/restaurants/${restaurant_id}/toggle-status`, {
     method: 'PUT',
-    credentials: 'include'
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   if (!response.ok) throw new Error('Failed to toggle restaurant status');
   return await response.json();
 }
 
 export async function approveRestaurant(restaurant_id) {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/restaurants/${restaurant_id}/approve`, {
     method: 'PUT',
-    credentials: 'include'
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   if (!response.ok) throw new Error('Failed to approve restaurant');
   return await response.json();
 }
 
 export async function rejectRestaurant(restaurant_id, reason) {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/restaurants/${restaurant_id}/reject`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
     body: JSON.stringify({ reason })
   });
   if (!response.ok) throw new Error('Failed to reject restaurant');
@@ -127,8 +142,11 @@ export async function rejectRestaurant(restaurant_id, reason) {
 
 /* ==================== DRONES ==================== */
 export async function getDrones() {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/drones`, {
-    credentials: 'include'
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   if (!response.ok) throw new Error('Failed to fetch drones');
   const data = await response.json();
@@ -136,10 +154,13 @@ export async function getDrones() {
 }
 
 export async function createDrone(input) {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/drones`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
     body: JSON.stringify(input)
   });
   if (!response.ok) throw new Error('Failed to create drone');
@@ -147,10 +168,13 @@ export async function createDrone(input) {
 }
 
 export async function updateDrone(drone_id, patch) {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/drones/${drone_id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
     body: JSON.stringify(patch)
   });
   if (!response.ok) throw new Error('Failed to update drone');
@@ -158,9 +182,12 @@ export async function updateDrone(drone_id, patch) {
 }
 
 export async function toggleDroneStatus(drone_id) {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/drones/${drone_id}/toggle-status`, {
     method: 'PUT',
-    credentials: 'include'
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   if (!response.ok) throw new Error('Failed to toggle drone status');
   return await response.json();
@@ -168,8 +195,11 @@ export async function toggleDroneStatus(drone_id) {
 
 /* ==================== ORDERS ==================== */
 export async function getOrders() {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/orders`, {
-    credentials: 'include'
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   if (!response.ok) throw new Error('Failed to fetch orders');
   const data = await response.json();
@@ -178,8 +208,11 @@ export async function getOrders() {
 
 /* ==================== DELIVERIES ==================== */
 export async function getDeliveries() {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/deliveries`, {
-    credentials: 'include'
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   if (!response.ok) throw new Error('Failed to fetch deliveries');
   const data = await response.json();
@@ -188,8 +221,11 @@ export async function getDeliveries() {
 
 /* ==================== PAYMENTS ==================== */
 export async function getPayments() {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/admin/payments`, {
-    credentials: 'include'
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   if (!response.ok) throw new Error('Failed to fetch payments');
   const data = await response.json();
