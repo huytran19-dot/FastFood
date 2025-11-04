@@ -81,6 +81,11 @@ Desktop.ini
 *.sqlite3
 *.db
 
+# Database configuration files (to avoid conflicts between developers)
+backend/src/config/config.json
+backend/src/config/config.js
+backend/src/config/db.js
+
 # Compiled files
 *.com
 *.class

@@ -1,26 +1,26 @@
 {
   "development": {
     "username": "root",
-    "password": "huytran123",
+    "password": "your_password_here",
     "database": "fastfood",
     "host": "127.0.0.1",
-    "port": 3307,
+    "port": 3306,
     "dialect": "mysql"
   },
   "test": {
     "username": "root",
-    "password": "huytran123",
+    "password": "your_password_here",
     "database": "fastfood_test",
     "host": "127.0.0.1",
-    "port": 3307,
+    "port": 3306,
     "dialect": "mysql"
   },
   "production": {
     "username": "root",
-    "password": "huytran123",
+    "password": "your_password_here",
     "database": "fastfood",
     "host": "127.0.0.1",
-    "port": 3307,
+    "port": 3306,
     "dialect": "mysql"
   }
 }
