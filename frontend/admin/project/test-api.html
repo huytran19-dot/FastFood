@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #FF4D4F;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #ff3336;
+        }
+        .output {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #52c41a;
+        }
+        .error {
+            color: #ff4d4f;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #fafafa;
+            font-weight: bold;
+        }
+        .badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-approved {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+        .badge-pending {
+            background: #fffbe6;
+            color: #faad14;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Admin API</h1>
+        <p>Test authentication và API endpoints cho Admin Dashboard</p>
+        
+        <div>
+            <button onclick="testLogin()">1. Test Login</button>
+            <button onclick="testGetUsers()">2. Test Get Users</button>
+            <button onclick="testGetRestaurants()">3. Test Get Restaurants</button>
+            <button onclick="clearOutput()">Clear Output</button>
+        </div>
+        
+        <div id="output" class="output">
+            <p><em>Click vào các button để test API...</em></p>
+        </div>
+        
+        <div id="restaurantTable"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000/api';
+        let token = null;
+
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const time = new Date().toLocaleTimeString('vi-VN');
+            const color = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+            output.innerHTML += `<div class="${color}">[${time}] ${message}</div>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+            document.getElementById('restaurantTable').innerHTML = '';
+        }
+
+        async function testLogin() {
+            try {
+                log('🔐 Đang đăng nhập với admin@fastfood.vn...');
+                
+                const response = await fetch(`${API_BASE_URL}/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@fastfood.vn',
+                        password: 'admin1'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                token = data.token;
+                
+                // Save to localStorage
+                localStorage.setItem('token', token);
+                
+                log(`✅ Đăng nhập thành công!`, 'success');
+                log(`👤 User: ${data.user.full_name}`);
+                log(`📧 Email: ${data.user.email}`);
+                log(`🔑 Token (30 ký tự đầu): ${token.substring(0, 30)}...`);
+                log(`💾 Token đã lưu vào localStorage`);
+                
+            } catch (error) {
+                log(`❌ Lỗi login: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetUsers() {
+            if (!token) {
+                log('⚠️ Chưa có token! Vui lòng login trước.', 'error');
+                return;
+            }
+
+            try {
+                log('👥 Đang lấy danh sách users...');
+                
+                const response = await fetch(`${API_BASE_URL}/admin/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const users = data.users || data;
+                
+                log(`✅ Lấy thành công ${users.length} users!`, 'success');
+                users.forEach(user => {
+                    log(`  - [${user.user_id}] ${user.full_name} (${user.email}) - Role: ${user.role}`);
+                });
+                
+            } catch (error) {
+                log(`❌ Lỗi get users: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetRestaurants() {
+            if (!token) {
+                log('⚠️ Chưa có token! Vui lòng login trước.', 'error');
+                return;
+            }
+
+            try {
+                log('🏪 Đang lấy danh sách nhà hàng...');
+                
+                const response = await fetch(`${API_BASE_URL}/admin/restaurants`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const restaurants = data.restaurants || data;
+                
+                log(`✅ Lấy thành công ${restaurants.length} nhà hàng!`, 'success');
+                
+                // Display in table
+                displayRestaurantsTable(restaurants);
+                
+            } catch (error) {
+                log(`❌ Lỗi get restaurants: ${error.message}`, 'error');
+            }
+        }
+
+        function displayRestaurantsTable(restaurants) {
+            const tableDiv = document.getElementById('restaurantTable');
+            
+            let html = '<table>';
+            html += '<thead><tr>';
+            html += '<th>ID</th>';
+            html += '<th>Tên nhà hàng</th>';
+            html += '<th>Chủ sở hữu</th>';
+            html += '<th>SĐT</th>';
+            html += '<th>Địa chỉ</th>';
+            html += '<th>Trạng thái</th>';
+            html += '<th>Đánh giá</th>';
+            html += '</tr></thead>';
+            html += '<tbody>';
+            
+            restaurants.forEach(r => {
+                const ownerName = r.owner ? r.owner.full_name : 'N/A';
+                const ownerEmail = r.owner ? r.owner.email : '';
+                const statusClass = r.review_status === 'APPROVED' ? 'badge-approved' : 'badge-pending';
+                
+                html += '<tr>';
+                html += `<td>${r.restaurant_id}</td>`;
+                html += `<td><strong>${r.name}</strong></td>`;
+                html += `<td><div>${ownerName}<br><small style="color: #999">${ownerEmail}</small></div></td>`;
+                html += `<td>${r.phone}</td>`;
+                html += `<td>${r.address}, ${r.city}</td>`;
+                html += `<td><span class="badge ${statusClass}">${r.review_status}</span></td>`;
+                html += `<td>⭐ ${r.rating || 0}</td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            tableDiv.innerHTML = html;
+        }
+
+        // Auto-login on page load if token exists
+        window.onload = () => {
+            const savedToken = localStorage.getItem('token');
+            if (savedToken) {
+                token = savedToken;
+                log('✅ Token đã tồn tại trong localStorage', 'success');
+                log('🔑 Token (30 ký tự đầu): ' + token.substring(0, 30) + '...');
+            }
+        };
+    </script>
+</body>
+</html>

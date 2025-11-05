@@ -28,8 +28,32 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      await login(formData)
-      // Navigation is handled by guards in App.jsx
+      const data = await login(formData)
+      
+      // Handle routing based on accessStatus from backend
+      if (data.restaurant) {
+        const { accessStatus } = data.restaurant
+        
+        switch (accessStatus) {
+          case 'PENDING_APPROVAL':
+            navigate('/waiting-approval')
+            break
+          case 'REJECTED':
+            navigate('/resubmit')
+            break
+          case 'RESTAURANT_INACTIVE':
+            navigate('/restaurant/dashboard')
+            // Toast warning will be shown by context
+            break
+          case 'FULL_ACCESS':
+            navigate('/restaurant/dashboard')
+            break
+          default:
+            navigate('/restaurant/register')
+        }
+      } else {
+        navigate('/restaurant/register')
+      }
     } catch (error) {
       // Error toast is shown by AuthContext
     } finally {
@@ -118,7 +142,7 @@ export default function LoginPage() {
         {/* Footer Note */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>Dành cho chủ nhà hàng</p>
-          <p className="mt-1">FastFood Drone Delivery System</p>
+          <p className="mt-1">FastFood Restaurant Dashboard</p>
         </div>
       </div>
     </div>

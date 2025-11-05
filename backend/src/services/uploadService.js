@@ -9,11 +9,27 @@ cloudinary.config({
 });
 
 const uploadService = {
-  uploadImage: async (filePath) => {
+  // Upload from file buffer (memory storage)
+  uploadImageFromBuffer: async (fileBuffer, folder = 'fastfood') => {
     try {
-      const result = await cloudinary.uploader.upload(filePath, {
-        folder: 'fastfood_products',
+      return new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result.secure_url);
+          }
+        ).end(fileBuffer);
       });
+    } catch (err) {
+      throw new Error('Upload to Cloudinary failed: ' + err.message);
+    }
+  },
+
+  // Legacy: Upload from file path (disk storage) - kept for backward compatibility
+  uploadImage: async (filePath, folder = 'fastfood') => {
+    try {
+      const result = await cloudinary.uploader.upload(filePath, { folder });
       return result.secure_url;
     } catch (err) {
       throw new Error('Upload to Cloudinary failed: ' + err.message);

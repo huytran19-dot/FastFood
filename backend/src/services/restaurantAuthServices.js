@@ -12,7 +12,7 @@ const restaurantAuthService = {
         include: [{
           model: roles,
           as: 'role',
-          attributes: ['role_id', 'name']
+          attributes: ['id', 'name']
         }]
       });
 
@@ -21,7 +21,7 @@ const restaurantAuthService = {
       }
 
       // Verify password
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, user.password_hash);
       if (!isPasswordValid) {
         throw new Error('Email hoặc mật khẩu không đúng');
       }
@@ -32,21 +32,67 @@ const restaurantAuthService = {
       }
 
       // Find restaurant owned by this user
-      const restaurant = await restaurants.findOne({
-        where: { user_id: user.user_id }
+      // Priority: APPROVED > PENDING > REJECTED
+      let restaurant = await restaurants.findOne({
+        where: { 
+          owner_id: user.id,
+          review_status: 'APPROVED'
+        }
       });
+
+      // If no approved restaurant, check for pending
+      if (!restaurant) {
+        restaurant = await restaurants.findOne({
+          where: { 
+            owner_id: user.id,
+            review_status: 'PENDING'
+          }
+        });
+      }
+
+      // If no pending, check for rejected
+      if (!restaurant) {
+        restaurant = await restaurants.findOne({
+          where: { 
+            owner_id: user.id,
+            review_status: 'REJECTED'
+          }
+        });
+      }
 
       if (!restaurant) {
         throw new Error('Không tìm thấy nhà hàng của bạn');
       }
 
+      // Calculate access status based on user.status + restaurant.review_status + restaurant.status
+      let accessStatus = 'FULL_ACCESS';
+      let accessMessage = '';
+      let allowedRoutes = null;
+
+      if (user.status !== 1) {
+        accessStatus = 'ACCOUNT_DISABLED';
+        accessMessage = 'Tài khoản của bạn đã bị vô hiệu hóa';
+      } else if (restaurant.review_status === 'PENDING') {
+        accessStatus = 'PENDING_APPROVAL';
+        accessMessage = 'Nhà hàng đang chờ admin duyệt';
+        allowedRoutes = ['/waiting-approval', '/profile'];
+      } else if (restaurant.review_status === 'REJECTED') {
+        accessStatus = 'REJECTED';
+        accessMessage = `Nhà hàng bị từ chối: ${restaurant.reject_reason || 'Không đạt yêu cầu'}`;
+        allowedRoutes = ['/resubmit', '/profile'];
+      } else if (restaurant.status !== 1) {
+        accessStatus = 'RESTAURANT_INACTIVE';
+        accessMessage = 'Nhà hàng đang tạm ngừng hoạt động';
+        allowedRoutes = null; // Vào được tất cả nhưng hiển thị warning
+      }
+
       // Generate JWT token
       const token = jwt.sign(
         {
-          user_id: user.user_id,
+          user_id: user.id,
           email: user.email,
           role: user.role.name,
-          restaurant_id: restaurant.restaurant_id
+          restaurant_id: restaurant.id
         },
         process.env.JWT_SECRET || 'your-secret-key',
         { expiresIn: '7d' }
@@ -54,21 +100,26 @@ const restaurantAuthService = {
 
       // Return user data without password
       const userData = {
-        user_id: user.user_id,
+        user_id: user.id,
         email: user.email,
-        name: user.name,
+        name: user.full_name,
         phone: user.phone,
         role: user.role.name,
-        restaurant_id: restaurant.restaurant_id
+        restaurant_id: restaurant.id
       };
 
       const restaurantData = {
-        restaurant_id: restaurant.restaurant_id,
+        restaurant_id: restaurant.id,
         name: restaurant.name,
         address: restaurant.address,
         phone: restaurant.phone,
         review_status: restaurant.review_status,
-        status: restaurant.status
+        status: restaurant.status,
+        reject_reason: restaurant.reject_reason,
+        // Computed fields for frontend routing
+        accessStatus,
+        accessMessage,
+        allowedRoutes
       };
 
       return {

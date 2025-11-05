@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const restaurantAuthController = require('../controllers/restaurantAuthControllers');
+const RestaurantAuthController = require('../controllers/restaurantAuthControllers');
 
-// Restaurant login
-router.post('/login', restaurantAuthController.login);
+// 🏪 Restaurant Owner Login Route
+router.post('/login', RestaurantAuthController.login);
 
 module.exports = router;

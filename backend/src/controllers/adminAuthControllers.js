@@ -1,4 +1,6 @@
-// src/controllers/adminControllers.js
+// Admin Authentication Controller
+// Handles admin login only
+// Admin accounts should be created manually in database
 const AdminService = require('../services/adminAuthServices');
 
 class AdminController {
@@ -7,46 +9,6 @@ class AdminController {
       const { email, password } = req.body;
       const result = await AdminService.login(email, password);
       res.json(result);
-    } catch (err) {
-      res.status(400).json({ error: err.message });
-    }
-  }
-
-  static async getUsers(req, res) {
-    try {
-      const users = await AdminService.getAllUsers();
-      res.json(users);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-
-  static async updateUserStatus(req, res) {
-    try {
-      const { userId } = req.params;
-      const { status } = req.body;
-      const user = await AdminService.changeUserStatus(userId, status);
-      res.json(user);
-    } catch (err) {
-      res.status(400).json({ error: err.message });
-    }
-  }
-
-  static async deleteUser(req, res) {
-    try {
-      const { userId } = req.params;
-      const result = await AdminService.deleteUser(userId);
-      res.json(result);
-    } catch (err) {
-      res.status(400).json({ error: err.message });
-    }
-  }
-
-  static async register(req, res) {
-    try {
-      const { email, password, full_name, phone } = req.body;
-      const result = await AdminService.createAdmin(email, password, full_name, phone);
-      res.status(201).json(result);
     } catch (err) {
       res.status(400).json({ error: err.message });
     }

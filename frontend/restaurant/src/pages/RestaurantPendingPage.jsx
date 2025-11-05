@@ -143,7 +143,7 @@ export default function RestaurantPendingPage() {
 
         {/* Footer */}
         <div className="mt-6 text-center text-sm text-muted-foreground">
-          <p>FastFood Drone Delivery System</p>
+          <p>FastFood Restaurant Dashboard</p>
         </div>
       </div>
     </div>

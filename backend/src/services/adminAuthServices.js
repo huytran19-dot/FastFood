@@ -15,13 +15,15 @@ class AdminService {
     if (!user) throw new Error('User not found');
     if (user.role.name !== 'admin') throw new Error('Not an admin');
 
-    // Admin dùng plain text password (không hash)
-    if (password !== user.password_hash) throw new Error('Invalid password');
+    // Verify password using bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid) throw new Error('Invalid password');
 
+    // ✅ FIX: Use same token format as main auth (userId, roleId)
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role.name },
+      { userId: user.id, roleId: user.role_id, role: user.role.name },
       SECRET_KEY,
-      { expiresIn: '8h' }
+      { expiresIn: '7d' }
     );
 
     return { token, user: { id: user.id, full_name: user.full_name, email: user.email } };
@@ -66,8 +68,8 @@ class AdminService {
     const existingUser = await users.findOne({ where: { email } });
     if (existingUser) throw new Error('Email already exists');
 
-    // Admin dùng plain text password (không hash)
-    const password_hash = password;
+    // Hash password using bcrypt
+    const password_hash = await bcrypt.hash(password, 10);
 
     // Tìm role admin
     const adminRole = await roles.findOne({ where: { name: 'admin' } });
