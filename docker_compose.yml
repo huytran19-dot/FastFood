@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  # 1) MySQL
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: huytran123
+      MYSQL_DATABASE: fastfood
+      MYSQL_USER: root
+      MYSQL_PASSWORD: huytran123
+      TZ: "Asia/Ho_Chi_Minh"
+    ports:
+      - "3307:3306"             # ví dụ 3307:3306
+    # POC: nếu muốn DB sạch mỗi lần, comment volume lại
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # - ./db-init:/docker-entrypoint-initdb.d  # (tuỳ chọn) auto chạy .sql khi init
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-phuytran123"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 2) Backend (Express)
+  backend:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: fastfood_backend
+    restart: always
+    env_file:
+      - ./be/.env                        # DB_HOST=mysql-db, DB_PORT=3306
+    ports:
+      - "${BACKEND_PORT}:8000"           # ví dụ 8000:8000
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
