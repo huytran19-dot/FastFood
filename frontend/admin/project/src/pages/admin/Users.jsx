@@ -21,9 +21,8 @@ export function AdminUsers() {
     setIsLoading(true);
     try {
       const data = await getUsers();
-      // Lọc chỉ lấy users có role là "user" (người dùng)
-      const filteredUsers = data.filter(user => user.role?.name === 'user');
-      setUsers(filteredUsers);
+      // Hiển thị tất cả users (admin, restaurant owners, và users thường)
+      setUsers(data);
     } catch (error) {
       showToast('Lỗi khi tải danh sách người dùng', 'error');
     } finally {

@@ -185,7 +185,7 @@ export default function RegisterPage() {
         {/* Footer Note */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>Sau khi đăng ký, bạn sẽ cần đăng ký thông tin nhà hàng</p>
-          <p className="mt-1">FastFood Drone Delivery System</p>
+          <p className="mt-1">FastFood Restaurant Dashboard</p>
         </div>
       </div>
     </div>

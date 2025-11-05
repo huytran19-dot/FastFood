@@ -17,13 +17,25 @@ export function AuthProvider({ children }) {
   const loadUser = async () => {
     try {
       if (authAPI.isAuthenticated()) {
-        const userData = await authAPI.getCurrentUser();
-        setUser(userData);
+        // Try to load from localStorage first
+        const storedUser = localStorage.getItem('user');
+        const storedRestaurant = localStorage.getItem('restaurant');
         
-        // Load restaurant if user has one
-        if (userData.restaurant_id) {
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+        
+        if (storedRestaurant) {
+          setRestaurant(JSON.parse(storedRestaurant));
+        }
+        
+        // Then fetch fresh data from API
+        try {
           const restaurantData = await restaurantAPI.getMine();
           setRestaurant(restaurantData);
+          localStorage.setItem('restaurant', JSON.stringify(restaurantData));
+        } catch (err) {
+          console.error('Failed to load restaurant:', err);
         }
       }
     } catch (error) {
@@ -40,10 +52,10 @@ export function AuthProvider({ children }) {
       const data = await authAPI.login(credentials);
       setUser(data.user);
       
-      // Load restaurant if exists
-      if (data.user.restaurant_id) {
-        const restaurantData = await restaurantAPI.getMine();
-        setRestaurant(restaurantData);
+      // Restaurant data is included in login response with accessStatus
+      if (data.restaurant) {
+        setRestaurant(data.restaurant);
+        localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
       }
       
       toast({
@@ -51,6 +63,7 @@ export function AuthProvider({ children }) {
         description: `Xin chào, ${data.user.name}!`,
       });
       
+      // Return data with accessStatus for routing logic
       return data;
     } catch (error) {
       toast({
@@ -88,6 +101,7 @@ export function AuthProvider({ children }) {
       await authAPI.logout();
       setUser(null);
       setRestaurant(null);
+      localStorage.removeItem('restaurant');
       
       toast({
         title: 'Đăng xuất thành công',

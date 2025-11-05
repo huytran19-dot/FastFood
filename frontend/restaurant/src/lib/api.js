@@ -123,5 +123,16 @@ export const restaurantAPI = {
     });
     
     return handleResponse(response);
+  },
+
+  // Get restaurant statistics
+  async getStats() {
+    const response = await fetch(`${API_BASE_URL}/restaurant/stats`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    
+    return handleResponse(response);
   }
 };

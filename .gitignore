@@ -81,10 +81,13 @@ Desktop.ini
 *.sqlite3
 *.db
 
-# Database configuration files (to avoid conflicts between developers)
-backend/src/config/config.json
-backend/src/config/config.js
-backend/src/config/db.js
+# Database configuration folder - NEVER push config files to GitHub
+# Ignore entire config folder
+backend/src/config/*
+
+# But allow example files and README
+!backend/src/config/*.example
+!backend/src/config/README.md
 
 # Compiled files
 *.com

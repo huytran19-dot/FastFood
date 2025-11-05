@@ -8,11 +8,14 @@ import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
 import RestaurantRegisterPage from '@/pages/RestaurantRegisterPage'
 import RestaurantPendingPage from '@/pages/RestaurantPendingPage'
+import WaitingApprovalPage from '@/pages/WaitingApprovalPage'
+import ResubmitPage from '@/pages/ResubmitPage'
 import DashboardPage from '@/pages/DashboardPage'
 import MenuPage from '@/pages/MenuPage'
 import OrdersPage from '@/pages/OrdersPage'
-import DeliveriesPage from '@/pages/DeliveriesPage'
+// import DeliveriesPage from '@/pages/DeliveriesPage' // Temporarily disabled - feature under development
 import ProfilePage from '@/pages/ProfilePage'
+import RestaurantLayout from '@/components/layout/RestaurantLayout'
 
 // Protected Route Component with Guards
 function ProtectedRoute({ children }) {
@@ -23,6 +26,8 @@ function ProtectedRoute({ children }) {
   useEffect(() => {
     if (loading) return
 
+    console.log('[ProtectedRoute] User:', user, 'Restaurant:', restaurant)
+
     // If not logged in, redirect to login
     if (!user) {
       navigate('/login', { replace: true, state: { from: location } })
@@ -31,29 +36,44 @@ function ProtectedRoute({ children }) {
 
     // If user has no restaurant, redirect to registration
     if (!restaurant) {
+      console.log('[ProtectedRoute] No restaurant found, redirecting to register')
       if (location.pathname !== '/restaurant/register') {
         navigate('/restaurant/register', { replace: true })
       }
       return
     }
 
-    // If restaurant is PENDING, redirect to pending page
-    if (restaurant.review_status === 'PENDING') {
-      if (location.pathname !== '/restaurant/pending') {
-        navigate('/restaurant/pending', { replace: true })
+    // Handle routing based on accessStatus from backend
+    const { accessStatus, allowedRoutes } = restaurant
+
+    // ACCOUNT_DISABLED - Không cho phép truy cập
+    if (accessStatus === 'ACCOUNT_DISABLED') {
+      navigate('/login', { replace: true })
+      return
+    }
+
+    // PENDING_APPROVAL - Chỉ cho phép truy cập trang waiting-approval
+    if (accessStatus === 'PENDING_APPROVAL') {
+      const allowedPaths = ['/waiting-approval', '/profile']
+      if (!allowedPaths.includes(location.pathname)) {
+        navigate('/waiting-approval', { replace: true })
       }
       return
     }
 
-    // If restaurant is REJECTED, redirect to pending page with rejection info
-    if (restaurant.review_status === 'REJECTED') {
-      if (location.pathname !== '/restaurant/pending') {
-        navigate('/restaurant/pending', { replace: true })
+    // REJECTED - Chỉ cho phép truy cập trang resubmit
+    if (accessStatus === 'REJECTED') {
+      const allowedPaths = ['/resubmit', '/profile']
+      if (!allowedPaths.includes(location.pathname)) {
+        navigate('/resubmit', { replace: true })
       }
       return
     }
 
-    // If restaurant is APPROVED, allow access to dashboard routes
+    // RESTAURANT_INACTIVE - Vào được dashboard nhưng hiển thị warning
+    // FULL_ACCESS - Truy cập bình thường
+    // Không cần redirect, cho phép truy cập tất cả routes
+
   }, [user, restaurant, loading, navigate, location.pathname])
 
   if (loading) {
@@ -81,13 +101,20 @@ function PublicRoute({ children }) {
     if (user) {
       if (!restaurant) {
         navigate('/restaurant/register', { replace: true })
-      } else if (restaurant.review_status === 'PENDING' || restaurant.review_status === 'REJECTED') {
-        navigate('/restaurant/pending', { replace: true })
-      } else if (restaurant.review_status === 'APPROVED') {
-        navigate('/restaurant/dashboard', { replace: true })
+      } else {
+        // Redirect based on accessStatus
+        const { accessStatus } = restaurant
+        
+        if (accessStatus === 'PENDING_APPROVAL') {
+          navigate('/waiting-approval', { replace: true })
+        } else if (accessStatus === 'REJECTED') {
+          navigate('/resubmit', { replace: true })
+        } else if (accessStatus === 'FULL_ACCESS' || accessStatus === 'RESTAURANT_INACTIVE') {
+          navigate('/restaurant/dashboard', { replace: true })
+        }
       }
     }
-  }, [user, restaurant?.review_status, loading, navigate])
+  }, [user, restaurant?.accessStatus, loading, navigate])
 
   if (loading) {
     return (
@@ -114,15 +141,22 @@ function AppContent() {
         {/* Protected Routes */}
         <Route path="/restaurant/register" element={<ProtectedRoute><RestaurantRegisterPage /></ProtectedRoute>} />
         <Route path="/restaurant/pending" element={<ProtectedRoute><RestaurantPendingPage /></ProtectedRoute>} />
-        <Route path="/restaurant/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/restaurant/menu" element={<ProtectedRoute><MenuPage /></ProtectedRoute>} />
-        <Route path="/restaurant/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
-        <Route path="/restaurant/deliveries" element={<ProtectedRoute><DeliveriesPage /></ProtectedRoute>} />
-        <Route path="/restaurant/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        
+        {/* New Status Pages */}
+        <Route path="/waiting-approval" element={<ProtectedRoute><WaitingApprovalPage /></ProtectedRoute>} />
+        <Route path="/resubmit" element={<ProtectedRoute><ResubmitPage /></ProtectedRoute>} />
+        
+        {/* Dashboard Routes (only accessible when APPROVED) - Wrapped with Layout */}
+        <Route path="/restaurant/dashboard" element={<ProtectedRoute><RestaurantLayout><DashboardPage /></RestaurantLayout></ProtectedRoute>} />
+        <Route path="/restaurant/menu" element={<ProtectedRoute><RestaurantLayout><MenuPage /></RestaurantLayout></ProtectedRoute>} />
+        <Route path="/restaurant/orders" element={<ProtectedRoute><RestaurantLayout><OrdersPage /></RestaurantLayout></ProtectedRoute>} />
+        {/* Deliveries route temporarily disabled - feature under development */}
+        {/* <Route path="/restaurant/deliveries" element={<ProtectedRoute><RestaurantLayout><DeliveriesPage /></RestaurantLayout></ProtectedRoute>} /> */}
+        <Route path="/restaurant/profile" element={<ProtectedRoute><RestaurantLayout><ProfilePage /></RestaurantLayout></ProtectedRoute>} />
 
         {/* Default Route */}
-        <Route path="/" element={<Navigate to="/restaurant/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/restaurant/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
       <Toaster />
     </div>

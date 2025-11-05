@@ -1,7 +1,9 @@
+// Restaurant Authentication Controller
+// Handles restaurant owner login only
 const restaurantAuthService = require('../services/restaurantAuthServices');
 
-const restaurantAuthController = {
-  async login(req, res) {
+class RestaurantAuthController {
+  static async login(req, res) {
     try {
       const { email, password } = req.body;
 
@@ -35,6 +37,6 @@ const restaurantAuthController = {
       });
     }
   }
-};
+}
 
-module.exports = restaurantAuthController;
+module.exports = RestaurantAuthController;
