@@ -81,14 +81,6 @@ Desktop.ini
 *.sqlite3
 *.db
 
-# Database configuration folder - NEVER push config files to GitHub
-# Ignore entire config folder
-backend/src/config/*
-
-# But allow example files and README
-!backend/src/config/*.example
-!backend/src/config/README.md
-
 # Compiled files
 *.com
 *.class
