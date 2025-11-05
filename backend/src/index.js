@@ -18,7 +18,13 @@ const PORT = process.env.PORT || 5000;
 // CORS Configuration - Production-ready
 const allowedOrigins = process.env.CORS_ORIGINS 
   ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+  : [
+      'http://localhost:5173', // User web app
+      'http://localhost:5174', // Admin app (old)
+      'http://localhost:5175', // Restaurant app
+      'http://localhost:5176', // Admin app (current)
+      'http://localhost:5178'  // Admin app (alternate)
+    ];
 
 const corsOptions = {
   origin: function (origin, callback) {

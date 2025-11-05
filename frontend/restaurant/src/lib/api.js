@@ -98,11 +98,22 @@ export const restaurantAPI = {
 
   // Get owner's restaurant
   async getMine() {
-    const response = await fetch(`${API_BASE_URL}/restaurants/mine`, {
-      headers: getAuthHeaders(),
-    });
-    
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_BASE_URL}/restaurants/mine`, {
+        headers: getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        console.warn('Restaurant API not available (401/404)');
+        return null;
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.warn('Failed to fetch restaurant:', error.message);
+      return null;
+    }
   },
 
   // Get restaurant by ID
@@ -127,12 +138,37 @@ export const restaurantAPI = {
 
   // Get restaurant statistics
   async getStats() {
-    const response = await fetch(`${API_BASE_URL}/restaurant/stats`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-      credentials: 'include',
-    });
-    
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_BASE_URL}/restaurant/stats`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        console.warn('Stats API not available (401/404), using mock data');
+        return {
+          totalOrders: 0,
+          pendingOrders: 0,
+          completedOrders: 0,
+          cancelledOrders: 0,
+          totalRevenue: 0,
+          totalMenuItems: 0
+        };
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.warn('Stats API error, using mock data:', error.message);
+      return {
+        totalOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        cancelledOrders: 0,
+        totalRevenue: 0,
+        totalMenuItems: 0
+      };
+    }
   }
 };

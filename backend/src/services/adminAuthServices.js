@@ -4,7 +4,7 @@ const { users, roles } = db;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const SECRET_KEY = process.env.JWT_SECRET || "SECRET_KEY";
+const SECRET_KEY = process.env.JWT_SECRET || 'fastfood-secret-key-change-in-production';
 
 class AdminService {
   static async login(email, password) {

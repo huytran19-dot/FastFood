@@ -34,10 +34,11 @@ function ProtectedRoute({ children }) {
       return
     }
 
-    // If user has no restaurant, redirect to registration
+    // If user has no restaurant, redirect to registration (only if not already there)
     if (!restaurant) {
-      console.log('[ProtectedRoute] No restaurant found, redirecting to register')
+      console.log('[ProtectedRoute] No restaurant found')
       if (location.pathname !== '/restaurant/register') {
+        console.log('[ProtectedRoute] Redirecting to /restaurant/register')
         navigate('/restaurant/register', { replace: true })
       }
       return
@@ -74,7 +75,7 @@ function ProtectedRoute({ children }) {
     // FULL_ACCESS - Truy cập bình thường
     // Không cần redirect, cho phép truy cập tất cả routes
 
-  }, [user, restaurant, loading, navigate, location.pathname])
+  }, [user, restaurant, loading, location.pathname])
 
   if (loading) {
     return (
@@ -100,7 +101,10 @@ function PublicRoute({ children }) {
 
     if (user) {
       if (!restaurant) {
-        navigate('/restaurant/register', { replace: true })
+        // Chỉ redirect nếu chưa ở trang register
+        if (location.pathname !== '/restaurant/register') {
+          navigate('/restaurant/register', { replace: true })
+        }
       } else {
         // Redirect based on accessStatus
         const { accessStatus } = restaurant
@@ -114,7 +118,7 @@ function PublicRoute({ children }) {
         }
       }
     }
-  }, [user, restaurant?.accessStatus, loading, navigate])
+  }, [user, restaurant, loading, location.pathname])
 
   if (loading) {
     return (

@@ -29,19 +29,24 @@ export function AuthProvider({ children }) {
           setRestaurant(JSON.parse(storedRestaurant));
         }
         
-        // Then fetch fresh data from API
+        // Then fetch fresh data from API (optional - only update if successful)
         try {
           const restaurantData = await restaurantAPI.getMine();
-          setRestaurant(restaurantData);
-          localStorage.setItem('restaurant', JSON.stringify(restaurantData));
+          if (restaurantData) {
+            setRestaurant(restaurantData);
+            localStorage.setItem('restaurant', JSON.stringify(restaurantData));
+          }
         } catch (err) {
-          console.error('Failed to load restaurant:', err);
+          console.warn('Failed to refresh restaurant data, using cached:', err.message);
+          // Không làm gì - giữ nguyên cached data
         }
       }
     } catch (error) {
       console.error('Failed to load user:', error);
       // Clear invalid auth
       await authAPI.logout();
+      setUser(null);
+      setRestaurant(null);
     } finally {
       setLoading(false);
     }

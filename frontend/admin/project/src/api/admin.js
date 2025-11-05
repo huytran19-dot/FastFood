@@ -3,25 +3,35 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 // Helper function to get auth token
 function getAuthToken() {
   const stored = sessionStorage.getItem('auth');
+  console.log('🔑 [getAuthToken] Raw stored:', stored);
   if (stored) {
     try {
       const auth = JSON.parse(stored);
+      console.log('🔑 [getAuthToken] Parsed auth:', auth);
+      console.log('🔑 [getAuthToken] Token exists:', !!auth.token);
       return auth.token;
-    } catch {
+    } catch (err) {
+      console.error('❌ [getAuthToken] Parse error:', err);
       return null;
     }
   }
+  console.warn('⚠️ [getAuthToken] No auth in sessionStorage');
   return null;
 }
 
 /* ==================== USERS ==================== */
 export async function getUsers() {
   const token = getAuthToken();
+  console.log('🔐 [getUsers] Using token:', token ? `${token.substring(0, 20)}...` : 'NULL');
+  
   const response = await fetch(`${API_BASE_URL}/admin/users`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
   });
+  
+  console.log('📡 [getUsers] Response status:', response.status);
+  
   if (!response.ok) throw new Error('Failed to fetch users');
   const data = await response.json();
   return data.users || data;
