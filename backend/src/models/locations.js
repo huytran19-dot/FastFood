@@ -1,6 +1,11 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('locations', {
+module.exports = (sequelize, DataTypes) => {
+  return locations.init(sequelize, DataTypes);
+}
+
+class locations extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+  return super.init({
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
@@ -17,11 +22,11 @@ module.exports = function(sequelize, DataTypes) {
     },
     latitude: {
       type: DataTypes.DECIMAL(9,6),
-      allowNull: true
+      allowNull: false
     },
     longitude: {
       type: DataTypes.DECIMAL(9,6),
-      allowNull: true
+      allowNull: false
     },
     altitude: {
       type: DataTypes.DECIMAL(6,2),
@@ -29,7 +34,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     recorded_at: {
       type: DataTypes.DATE,
-      allowNull: true,
+      allowNull: false,
       defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP')
     }
   }, {
@@ -61,4 +66,5 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+  }
+}

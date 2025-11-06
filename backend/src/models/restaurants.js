@@ -1,6 +1,11 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('restaurants', {
+module.exports = (sequelize, DataTypes) => {
+  return restaurants.init(sequelize, DataTypes);
+}
+
+class restaurants extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+  return super.init({
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
@@ -45,12 +50,12 @@ module.exports = function(sequelize, DataTypes) {
     },
     rating: {
       type: DataTypes.DOUBLE,
-      allowNull: true,
+      allowNull: false,
       defaultValue: 0
     },
     status: {
       type: DataTypes.TINYINT,
-      allowNull: true,
+      allowNull: false,
       defaultValue: 1
     },
     open_time: {
@@ -85,7 +90,10 @@ module.exports = function(sequelize, DataTypes) {
   }, {
     sequelize,
     tableName: 'restaurants',
-    timestamps: false,
+    timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         name: "PRIMARY",
@@ -93,6 +101,15 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "id" },
+        ]
+      },
+      {
+        name: "uq_restaurants_owner_name",
+        unique: true,
+        using: "BTREE",
+        fields: [
+          { name: "owner_id" },
+          { name: "name" },
         ]
       },
       {
@@ -132,4 +149,5 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+  }
+}

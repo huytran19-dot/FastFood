@@ -100,8 +100,11 @@ exports.getRestaurantStats = async (req, res) => {
     
     console.log('✅ [Stats] Found restaurant:', restaurant.id);
 
+    // Debug: Check available models
+    console.log('🔍 Available models:', Object.keys(db).filter(k => !['sequelize', 'Sequelize'].includes(k)));
+
     // Use correct model names from db
-    const { orders, menuItems } = db;
+    const { orders, menu_items } = db;
 
     // Get total orders
     const totalOrders = await orders.count({
@@ -142,7 +145,7 @@ exports.getRestaurantStats = async (req, res) => {
     const totalRevenue = revenueResult || 0;
 
     // Get total menu items
-    const totalMenuItems = await menuItems.count({
+    const totalMenuItems = await menu_items.count({
       where: { restaurant_id: restaurant.id }
     });
 

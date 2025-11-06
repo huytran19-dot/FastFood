@@ -11,6 +11,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
 const restaurantAuthRoutes = require('./routes/restaurantAuthRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const menuRoutes = require('./routes/menuRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -70,6 +71,9 @@ app.use('/api/restaurant', restaurantRoutes); // Protected routes - requires aut
 
 // Upload routes
 app.use('/api/upload', uploadRoutes);
+
+// Menu routes
+app.use('/api/menu', menuRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

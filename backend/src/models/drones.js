@@ -1,6 +1,11 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('drones', {
+module.exports = (sequelize, DataTypes) => {
+  return drones.init(sequelize, DataTypes);
+}
+
+class drones extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+  return super.init({
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
@@ -17,19 +22,19 @@ module.exports = function(sequelize, DataTypes) {
     },
     model: {
       type: DataTypes.STRING(100),
-      allowNull: true
+      allowNull: false
     },
     capacity: {
       type: DataTypes.DOUBLE,
-      allowNull: true
+      allowNull: false
     },
     battery: {
       type: DataTypes.DOUBLE,
-      allowNull: true
+      allowNull: false
     },
     status: {
       type: DataTypes.STRING(50),
-      allowNull: true
+      allowNull: false
     }
   }, {
     sequelize,
@@ -53,4 +58,5 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+  }
+}
