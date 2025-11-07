@@ -7,7 +7,6 @@ import {
   Trash2, 
   Eye, 
   EyeOff,
-  DollarSign,
   Package,
   Tag,
   Image as ImageIcon,
@@ -463,7 +462,6 @@ export default function MenuPage() {
                 {/* Price */}
                 <div className="flex items-center justify-between pt-2 border-t">
                   <div className="flex items-center gap-1 text-orange-600">
-                    <DollarSign className="h-4 w-4" />
                     <span className="font-bold text-lg">{formatPrice(item.price)}</span>
                   </div>
                 </div>

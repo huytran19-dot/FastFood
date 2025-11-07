@@ -4,6 +4,78 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 // Simulate network delay
 const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ===== PUBLIC API (không cần auth) =====
+export const publicAPI = {
+  // Lấy danh sách nhà hàng
+  async getRestaurants() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/restaurants`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch restaurants');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error fetching restaurants:', error);
+      throw error;
+    }
+  },
+
+  // Lấy thông tin nhà hàng
+  async getRestaurantById(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/restaurants/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch restaurant');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error fetching restaurant:', error);
+      throw error;
+    }
+  },
+
+  // Lấy menu của nhà hàng
+  async getRestaurantMenu(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/restaurants/${id}/menu`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch menu');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error fetching menu:', error);
+      throw error;
+    }
+  },
+};
+
 // Mock user database (in a real app, this would be on the server)
 const MOCK_USERS = [
   {

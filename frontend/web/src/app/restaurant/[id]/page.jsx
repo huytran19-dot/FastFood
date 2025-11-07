@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { Star, Clock, MapPin, Phone, ChevronLeft } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Star, Clock, MapPin, Phone, ChevronLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -8,75 +8,62 @@ import { CartDrawer } from "@/components/cart-drawer"
 import { useToast } from "@/hooks/use-toast"
 import { Link } from "react-router-dom"
 import { useParams } from "react-router-dom"
-
-// Mock data
-const restaurant = {
-  id: "1",
-  name: "Fast Burger Drone",
-  image: "/delicious-burger-restaurant.jpg",
-  rating: 4.7,
-  address: "123 Trần Hưng Đạo, Quận 1, TP.HCM",
-  phone: "0909 000 111",
-  openTime: "08:00 - 22:00",
-  isOpen: true,
-}
-
-const menuItems = [
-  {
-    id: "1",
-    name: "Burger Bò Phô Mai",
-    description: "Burger bò Úc 100% với phô mai cheddar tan chảy",
-    price: 89000,
-    image: "/burger-cheese.jpg",
-    category: "combo",
-  },
-  {
-    id: "2",
-    name: "Gà Rán Giòn",
-    description: "Gà rán giòn tan với công thức bí mật",
-    price: 59000,
-    image: "/fried-chicken.jpg",
-    category: "combo",
-  },
-  {
-    id: "3",
-    name: "Khoai Tây Chiên",
-    description: "Khoai tây chiên giòn rụm, ăn kèm tương cà",
-    price: 29000,
-    image: "/french-fries.jpg",
-    category: "combo",
-  },
-  {
-    id: "4",
-    name: "Trà Đào",
-    description: "Trà đào cam sả tươi mát",
-    price: 25000,
-    image: "/peach-tea.jpg",
-    category: "drinks",
-  },
-  {
-    id: "5",
-    name: "Coca Cola",
-    description: "Nước ngọt có ga",
-    price: 15000,
-    image: "/coca-cola.jpg",
-    category: "drinks",
-  },
-  {
-    id: "6",
-    name: "Kem Sundae",
-    description: "Kem vani với sốt chocolate",
-    price: 20000,
-    image: "/ice-cream-sundae.jpg",
-    category: "desserts",
-  },
-]
+import { publicAPI } from "@/lib/api"
 
 export default function RestaurantPage() {
   const { id } = useParams()
+  const [restaurant, setRestaurant] = useState(null)
+  const [menuItems, setMenuItems] = useState([])
+  const [loading, setLoading] = useState(true)
   const [cartItems, setCartItems] = useState([])
   const [activeTab, setActiveTab] = useState("all")
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (id) {
+      fetchRestaurantData()
+    }
+  }, [id])
+
+  const fetchRestaurantData = async () => {
+    try {
+      setLoading(true)
+      const data = await publicAPI.getRestaurantMenu(id)
+      
+      // Set restaurant info
+      setRestaurant({
+        id: data.restaurant.id,
+        name: data.restaurant.name,
+        image: data.restaurant.image_url || "/delicious-burger-restaurant.jpg",
+        rating: data.restaurant.rating || 4.5,
+        address: data.restaurant.address,
+        phone: data.restaurant.phone,
+        openTime: "08:00 - 22:00", // Có thể thêm vào database sau
+        isOpen: true,
+      })
+
+      // Transform menu items
+      const transformedMenu = data.menuItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        price: parseFloat(item.price),
+        image: item.image_url || "/placeholder.svg",
+        category: item.category_id ? `category-${item.category_id}` : "other",
+      }))
+      
+      setMenuItems(transformedMenu)
+    } catch (error) {
+      console.error('Failed to fetch restaurant data:', error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải thông tin nhà hàng. Vui lòng thử lại sau.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleAddToCart = (item) => {
     setCartItems((prev) => {
@@ -108,6 +95,30 @@ export default function RestaurantPage() {
   }
 
   const filteredItems = activeTab === "all" ? menuItems : menuItems.filter((item) => item.category === activeTab)
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải thông tin nhà hàng...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Không tìm thấy nhà hàng</p>
+          <Button asChild>
+            <Link to="/">Về trang chủ</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
   <div className="min-h-screen bg-background">
@@ -170,11 +181,17 @@ export default function RestaurantPage() {
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-6">
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredItems.map((item) => (
-                <MenuItemCard key={item.id} {...item} onAddToCart={handleAddToCart} />
-              ))}
-            </div>
+            {filteredItems.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Chưa có món ăn nào trong danh mục này</p>
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredItems.map((item) => (
+                  <MenuItemCard key={item.id} {...item} onAddToCart={handleAddToCart} />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
