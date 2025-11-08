@@ -1,79 +1,89 @@
-// Mock API for authentication
+// API for authentication with email verification
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Simulate network delay
-const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Mock user database (in a real app, this would be on the server)
-const MOCK_USERS = [
-  {
-    id: 1,
-    email: 'demo@example.com',
-    password: 'password123',
-    name: 'Demo User',
-    phone: '+1234567890',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo'
-  }
-];
-
-// Mock API functions
+// API functions
 export const authAPI = {
-  // Login user
-  async login(email, password) {
-    await delay();
-    
-    const user = MOCK_USERS.find(u => u.email === email && u.password === password);
-    
-    if (!user) {
-      throw new Error('Invalid email or password');
+  // Register new user (with email verification)
+  async register(userData) {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        full_name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        password: userData.password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Đăng ký thất bại');
     }
-    
-    // Create a mock token
-    const token = btoa(JSON.stringify({ userId: user.id, timestamp: Date.now() }));
-    
-    // Store token in localStorage
-    localStorage.setItem('authToken', token);
-    
-    // Return user data (without password)
-    const { password: _, ...userWithoutPassword } = user;
-    localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-    
-    return {
-      user: userWithoutPassword,
-      token
-    };
+
+    return data;
   },
 
-  // Register new user
-  async register(userData) {
-    await delay();
-    
-    // Check if user already exists
-    const existingUser = MOCK_USERS.find(u => u.email === userData.email);
-    if (existingUser) {
-      throw new Error('User with this email already exists');
+  // Login user (requires email verification)
+  async login(email, password) {
+    const response = await fetch(`${API_BASE_URL}/auth/user/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Đăng nhập thất bại');
     }
-    
-    // Create new user
-    const newUser = {
-      id: MOCK_USERS.length + 1,
-      ...userData,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`
-    };
-    
-    MOCK_USERS.push(newUser);
-    
-    // Auto-login after registration
-    const token = btoa(JSON.stringify({ userId: newUser.id, timestamp: Date.now() }));
-    localStorage.setItem('authToken', token);
-    
-    const { password: _, ...userWithoutPassword } = newUser;
-    localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-    
-    return {
-      user: userWithoutPassword,
-      token
-    };
+
+    // Store token in localStorage
+    if (data.data && data.data.token) {
+      localStorage.setItem('authToken', data.data.token);
+      localStorage.setItem('user', JSON.stringify(data.data.user));
+    }
+
+    return data.data;
+  },
+
+  // Verify email
+  async verifyEmail(token) {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-email?token=${token}`, {
+      method: 'GET',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Xác thực email thất bại');
+    }
+
+    return data;
+  },
+
+  // Resend verification email
+  async resendVerification(email) {
+    const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Gửi lại email thất bại');
+    }
+
+    return data;
   },
 
   // Get current user

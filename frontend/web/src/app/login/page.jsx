@@ -53,9 +53,9 @@ export default function LoginPage() {
 
         <Card>
           <CardHeader className="text-center">
-            <CardTitle>Login</CardTitle>
+            <CardTitle>Đăng Nhập</CardTitle>
             <CardDescription>
-              Login to order food and track your deliveries
+              Đăng nhập để đặt món và theo dõi giao hàng
             </CardDescription>
           </CardHeader>
           
@@ -73,7 +73,7 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Mật khẩu</Label>
                 <Input 
                   id="password" 
                   type="password" 
@@ -85,25 +85,25 @@ export default function LoginPage() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <Link to="/forgot-password" className="text-primary hover:underline">
-                  Forgot password?
+                  Quên mật khẩu?
                 </Link>
               </div>
               <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
               </Button>
             </form>
 
             {/* Demo credentials hint */}
             <div className="mt-4 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-              <p className="font-medium">Demo credentials:</p>
+              <p className="font-medium">Tài khoản demo:</p>
               <p>Email: demo@example.com</p>
-              <p>Password: password123</p>
+              <p>Mật khẩu: password123</p>
             </div>
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
-              Don't have an account?{" "}
+              Chưa có tài khoản?{" "}
               <Link to="/register" className="font-medium text-primary hover:underline">
-                Register now
+                Đăng ký ngay
               </Link>
             </div>
           </CardContent>

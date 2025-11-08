@@ -21,7 +21,7 @@ export default function AdminLogin() {
 
   return (
     <div className="login-container">
-      <h2>Admin Login</h2>
+      <h2>Đăng Nhập Quản Trị Viên</h2>
       <form onSubmit={handleSubmit}>
         <input
           type="email"

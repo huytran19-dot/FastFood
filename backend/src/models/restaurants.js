@@ -47,7 +47,7 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DOUBLE,
       allowNull: true,
       defaultValue: 0
-    },
+    }, 
     status: {
       type: DataTypes.TINYINT,
       allowNull: true,

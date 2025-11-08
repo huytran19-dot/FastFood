@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authAPI, restaurantAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -9,6 +10,7 @@ export function AuthProvider({ children }) {
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadUser();
@@ -17,8 +19,7 @@ export function AuthProvider({ children }) {
   const loadUser = async () => {
     try {
       if (authAPI.isAuthenticated()) {
-        // Try to load from localStorage first
-        const storedUser = localStorage.getItem('user');
+          const storedUser = localStorage.getItem('user');
         const storedRestaurant = localStorage.getItem('restaurant');
         
         if (storedUser) {
@@ -29,7 +30,6 @@ export function AuthProvider({ children }) {
           setRestaurant(JSON.parse(storedRestaurant));
         }
         
-        // Then fetch fresh data from API (optional - only update if successful)
         try {
           const restaurantData = await restaurantAPI.getMine();
           if (restaurantData) {
@@ -38,12 +38,10 @@ export function AuthProvider({ children }) {
           }
         } catch (err) {
           console.warn('Failed to refresh restaurant data, using cached:', err.message);
-          // Không làm gì - giữ nguyên cached data
         }
       }
     } catch (error) {
       console.error('Failed to load user:', error);
-      // Clear invalid auth
       await authAPI.logout();
       setUser(null);
       setRestaurant(null);
@@ -55,20 +53,25 @@ export function AuthProvider({ children }) {
   const login = async (credentials) => {
     try {
       const data = await authAPI.login(credentials);
-      setUser(data.user);
       
-      // Restaurant data is included in login response with accessStatus
-      if (data.restaurant) {
-        setRestaurant(data.restaurant);
-        localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
+      const isPending = data.restaurant?.review_status === 'PENDING';
+      
+      if (!isPending) {
+        setUser(data.user);
+        
+        if (data.restaurant) {
+          setRestaurant(data.restaurant);
+          localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
+        }
       }
       
       toast({
-        title: 'Đăng nhập thành công',
-        description: `Xin chào, ${data.user.name}!`,
+        title: isPending ? 'Tài khoản đang chờ duyệt' : 'Đăng nhập thành công',
+        description: isPending 
+          ? 'Nhà hàng của bạn đang được xem xét' 
+          : `Xin chào, ${data.user.name}!`,
       });
       
-      // Return data with accessStatus for routing logic
       return data;
     } catch (error) {
       toast({
@@ -86,9 +89,11 @@ export function AuthProvider({ children }) {
       setUser(data.user);
       
       toast({
-        title: 'Đăng ký thành công',
-        description: 'Tài khoản của bạn đã được tạo',
+        title: 'Đăng ký tài khoản thành công',
+        description: 'Vui lòng đăng ký thông tin nhà hàng',
       });
+      
+      navigate('/restaurant/register');
       
       return data;
     } catch (error) {
@@ -101,17 +106,19 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = async () => {
+  const logout = async (showToast = true) => {
     try {
       await authAPI.logout();
       setUser(null);
       setRestaurant(null);
       localStorage.removeItem('restaurant');
       
-      toast({
-        title: 'Đăng xuất thành công',
-        description: 'Hẹn gặp lại bạn!',
-      });
+      if (showToast) {
+        toast({
+          title: 'Đăng xuất thành công',
+          description: 'Hẹn gặp lại bạn!',
+        });
+      }
     } catch (error) {
       toast({
         variant: 'destructive',

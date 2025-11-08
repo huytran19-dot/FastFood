@@ -41,6 +41,22 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: 1
     },
+    email_verified: {
+      type: DataTypes.TINYINT,
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Email verification status'
+    },
+    email_verification_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      comment: 'Token for email verification'
+    },
+    email_verification_expires_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Token expiration time'
+    },
     created_at: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -79,6 +95,13 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "role_id" },
+        ]
+      },
+      {
+        name: "idx_email_verification_token",
+        using: "BTREE",
+        fields: [
+          { name: "email_verification_token" },
         ]
       },
     ]

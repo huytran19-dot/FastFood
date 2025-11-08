@@ -7,13 +7,11 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
 import RestaurantRegisterPage from '@/pages/RestaurantRegisterPage'
-import RestaurantPendingPage from '@/pages/RestaurantPendingPage'
 import WaitingApprovalPage from '@/pages/WaitingApprovalPage'
 import ResubmitPage from '@/pages/ResubmitPage'
 import DashboardPage from '@/pages/DashboardPage'
 import MenuPage from '@/pages/MenuPage'
 import OrdersPage from '@/pages/OrdersPage'
-// import DeliveriesPage from '@/pages/DeliveriesPage' // Temporarily disabled - feature under development
 import ProfilePage from '@/pages/ProfilePage'
 import RestaurantLayout from '@/components/layout/RestaurantLayout'
 
@@ -26,56 +24,34 @@ function ProtectedRoute({ children }) {
   useEffect(() => {
     if (loading) return
 
-    console.log('[ProtectedRoute] User:', user, 'Restaurant:', restaurant)
-
     // If not logged in, redirect to login
     if (!user) {
       navigate('/login', { replace: true, state: { from: location } })
       return
     }
 
-    // If user has no restaurant, redirect to registration (only if not already there)
+    // If user has no restaurant, redirect to registration
     if (!restaurant) {
-      console.log('[ProtectedRoute] No restaurant found')
       if (location.pathname !== '/restaurant/register') {
-        console.log('[ProtectedRoute] Redirecting to /restaurant/register')
         navigate('/restaurant/register', { replace: true })
       }
       return
     }
 
-    // Handle routing based on accessStatus from backend
-    const { accessStatus, allowedRoutes } = restaurant
-
-    // ACCOUNT_DISABLED - Không cho phép truy cập
-    if (accessStatus === 'ACCOUNT_DISABLED') {
-      navigate('/login', { replace: true })
+    // Check review_status - redirect non-approved restaurants
+    const { review_status } = restaurant
+    
+    if (review_status === 'PENDING') {
+      navigate('/pending', { replace: true })
       return
     }
 
-    // PENDING_APPROVAL - Chỉ cho phép truy cập trang waiting-approval
-    if (accessStatus === 'PENDING_APPROVAL') {
-      const allowedPaths = ['/waiting-approval', '/profile']
-      if (!allowedPaths.includes(location.pathname)) {
-        navigate('/waiting-approval', { replace: true })
-      }
+    if (review_status === 'REJECTED') {
+      navigate('/rejected', { replace: true })
       return
     }
 
-    // REJECTED - Chỉ cho phép truy cập trang resubmit
-    if (accessStatus === 'REJECTED') {
-      const allowedPaths = ['/resubmit', '/profile']
-      if (!allowedPaths.includes(location.pathname)) {
-        navigate('/resubmit', { replace: true })
-      }
-      return
-    }
-
-    // RESTAURANT_INACTIVE - Vào được dashboard nhưng hiển thị warning
-    // FULL_ACCESS - Truy cập bình thường
-    // Không cần redirect, cho phép truy cập tất cả routes
-
-  }, [user, restaurant, loading, location.pathname])
+  }, [user, restaurant, loading, location.pathname, navigate])
 
   if (loading) {
     return (
@@ -99,26 +75,16 @@ function PublicRoute({ children }) {
   useEffect(() => {
     if (loading) return
 
-    if (user) {
-      if (!restaurant) {
-        // Chỉ redirect nếu chưa ở trang register
-        if (location.pathname !== '/restaurant/register') {
-          navigate('/restaurant/register', { replace: true })
-        }
-      } else {
-        // Redirect based on accessStatus
-        const { accessStatus } = restaurant
-        
-        if (accessStatus === 'PENDING_APPROVAL') {
-          navigate('/waiting-approval', { replace: true })
-        } else if (accessStatus === 'REJECTED') {
-          navigate('/resubmit', { replace: true })
-        } else if (accessStatus === 'FULL_ACCESS' || accessStatus === 'RESTAURANT_INACTIVE') {
-          navigate('/restaurant/dashboard', { replace: true })
-        }
+    if (user && restaurant) {
+      // Only redirect if user has restaurant in context (means they are authenticated and approved)
+      const { review_status } = restaurant
+      
+      if (review_status === 'APPROVED') {
+        navigate('/restaurant/dashboard', { replace: true })
       }
+      // Don't redirect for PENDING/REJECTED - they are not in context anyway
     }
-  }, [user, restaurant, loading, location.pathname])
+  }, [user, restaurant, loading, navigate])
 
   if (loading) {
     return (
@@ -144,11 +110,10 @@ function AppContent() {
 
         {/* Protected Routes */}
         <Route path="/restaurant/register" element={<ProtectedRoute><RestaurantRegisterPage /></ProtectedRoute>} />
-        <Route path="/restaurant/pending" element={<ProtectedRoute><RestaurantPendingPage /></ProtectedRoute>} />
         
-        {/* New Status Pages */}
-        <Route path="/waiting-approval" element={<ProtectedRoute><WaitingApprovalPage /></ProtectedRoute>} />
-        <Route path="/resubmit" element={<ProtectedRoute><ResubmitPage /></ProtectedRoute>} />
+        {/* Status Pages - NOT protected because user is not authenticated yet */}
+        <Route path="/pending" element={<WaitingApprovalPage />} />
+        <Route path="/rejected" element={<ResubmitPage />} />
         
         {/* Dashboard Routes (only accessible when APPROVED) - Wrapped with Layout */}
         <Route path="/restaurant/dashboard" element={<ProtectedRoute><RestaurantLayout><DashboardPage /></RestaurantLayout></ProtectedRoute>} />

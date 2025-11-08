@@ -3,7 +3,7 @@ const db = require('../models');
 // POST /api/restaurants - Create new restaurant
 exports.createRestaurant = async (req, res) => {
   try {
-    const { name, address, phone, description, image_url, operating_hours } = req.body;
+    const { name, address, phone, description, image_url, operating_hours, city } = req.body;
 
     // Check if owner already has a restaurant
     const existingRestaurant = await db.restaurants.findOne({
@@ -14,6 +14,10 @@ exports.createRestaurant = async (req, res) => {
       return res.status(400).json({ message: 'Bạn đã có nhà hàng' });
     }
 
+    // Parse operating_hours into open_time and close_time
+    const hours = operating_hours || '08:00-22:00';
+    const [open_time, close_time] = hours.split('-').map(t => t.trim());
+
     // Create restaurant
     const restaurant = await db.restaurants.create({
       name,
@@ -21,9 +25,11 @@ exports.createRestaurant = async (req, res) => {
       owner_id: req.user.id,
       review_status: 'PENDING',
       address,
+      city: city || null,
       phone,
       image_url,
-      operating_hours: operating_hours || '08:00-22:00'
+      open_time,
+      close_time
     });
 
     res.status(201).json(restaurant);
@@ -44,7 +50,11 @@ exports.getMyRestaurant = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
     }
 
-    res.json(restaurant);
+    // Add combined operating_hours for frontend
+    const restaurantData = restaurant.toJSON();
+    restaurantData.operating_hours = `${restaurant.open_time}-${restaurant.close_time}`;
+
+    res.json(restaurantData);
   } catch (error) {
     console.error('Get restaurant error:', error);
     res.status(500).json({ message: 'Lỗi server', error: error.message });
@@ -54,7 +64,7 @@ exports.getMyRestaurant = async (req, res) => {
 // PUT /api/restaurants/mine - Update owner's restaurant
 exports.updateMyRestaurant = async (req, res) => {
   try {
-    const { name, address, phone, description, image_url, operating_hours } = req.body;
+    const { name, address, phone, description, image_url, operating_hours, city } = req.body;
 
     const restaurant = await db.restaurants.findOne({
       where: { owner_id: req.user.id }
@@ -64,16 +74,21 @@ exports.updateMyRestaurant = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
     }
 
-    await restaurant.update({
-      name,
-      address,
-      phone,
-      description,
-      image_url,
-      operating_hours
-    });
+    // Parse operating_hours if provided
+    let updateData = { name, address, phone, description, image_url, city };
+    if (operating_hours) {
+      const [open_time, close_time] = operating_hours.split('-').map(t => t.trim());
+      updateData.open_time = open_time;
+      updateData.close_time = close_time;
+    }
 
-    res.json(restaurant);
+    await restaurant.update(updateData);
+
+    // Add combined operating_hours for frontend
+    const restaurantData = restaurant.toJSON();
+    restaurantData.operating_hours = `${restaurant.open_time}-${restaurant.close_time}`;
+
+    res.json(restaurantData);
   } catch (error) {
     console.error('Update restaurant error:', error);
     res.status(500).json({ message: 'Lỗi server', error: error.message });
