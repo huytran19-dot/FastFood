@@ -30,26 +30,23 @@ export default function LoginPage() {
     try {
       const data = await login(formData)
       
-      // Handle routing based on accessStatus from backend
+      // Xử lý routing dựa trên trạng thái nhà hàng
       if (data.restaurant) {
-        const { accessStatus } = data.restaurant
+        const { review_status } = data.restaurant
         
-        switch (accessStatus) {
-          case 'PENDING_APPROVAL':
-            navigate('/waiting-approval')
-            break
-          case 'REJECTED':
-            navigate('/resubmit')
-            break
-          case 'RESTAURANT_INACTIVE':
-            navigate('/restaurant/dashboard')
-            // Toast warning will be shown by context
-            break
-          case 'FULL_ACCESS':
-            navigate('/restaurant/dashboard')
-            break
-          default:
-            navigate('/restaurant/register')
+        if (review_status === 'PENDING') {
+          // Lưu thông tin tạm cho trang pending
+          localStorage.setItem('pendingRestaurant', JSON.stringify(data.restaurant))
+          // Xóa token và restaurant context vì chưa được duyệt
+          localStorage.removeItem('token')
+          localStorage.removeItem('restaurant')
+          navigate('/pending')
+        } else if (review_status === 'REJECTED') {
+          navigate('/rejected')
+        } else if (review_status === 'APPROVED') {
+          navigate('/restaurant/dashboard')
+        } else {
+          navigate('/restaurant/register')
         }
       } else {
         navigate('/restaurant/register')
@@ -93,7 +90,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="owner@restaurant.com"
+                  placeholder="chuhang@example.com"
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -101,7 +98,7 @@ export default function LoginPage() {
                 />
               </div>
 
-              {/* Password */}
+              {/* Mật khẩu */}
               <div>
                 <Label htmlFor="password" className="flex items-center gap-2">
                   <Lock className="h-4 w-4" />
@@ -128,7 +125,7 @@ export default function LoginPage() {
                 {isLoading ? 'Đang đăng nhập...' : 'Đăng Nhập'}
               </Button>
 
-              {/* Register Link */}
+              {/* Link đăng ký */}
               <p className="text-center text-sm text-muted-foreground">
                 Chưa có tài khoản?{' '}
                 <Link to="/register" className="text-primary hover:underline font-medium">
@@ -142,7 +139,7 @@ export default function LoginPage() {
         {/* Footer Note */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>Dành cho chủ nhà hàng</p>
-          <p className="mt-1">FastFood Restaurant Dashboard</p>
+          <p className="mt-1">Hệ Thống Quản Lý Nhà Hàng FastFood</p>
         </div>
       </div>
     </div>

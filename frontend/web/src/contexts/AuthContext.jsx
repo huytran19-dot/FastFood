@@ -48,19 +48,21 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const { user: newUser } = await authAPI.register(userData);
-      setUser(newUser);
+      const response = await authAPI.register(userData);
+      
+      // KHÔNG set user vào context vì chưa verify email
+      // User cần verify email trước khi login
       
       toast({
-        title: 'Account created!',
-        description: 'Welcome to FastFood!',
+        title: 'Đăng ký thành công!',
+        description: 'Vui lòng kiểm tra email để xác thực tài khoản.',
       });
       
-      return newUser;
+      return response;
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Registration failed',
+        title: 'Đăng ký thất bại',
         description: error.message,
       });
       throw error;

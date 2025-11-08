@@ -1,18 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Clock, AlertCircle, Phone, Mail, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 
 export default function WaitingApprovalPage() {
-  const { restaurant, logout } = useAuth();
   const navigate = useNavigate();
+  const [pendingRestaurant, setPendingRestaurant] = useState(null);
 
   useEffect(() => {
     document.title = 'Đang chờ duyệt - FastFood Restaurant';
+    
+    // Lấy thông tin nhà hàng từ localStorage (đã lưu khi đăng ký hoặc login)
+    const savedRestaurant = localStorage.getItem('pendingRestaurant');
+    if (savedRestaurant) {
+      setPendingRestaurant(JSON.parse(savedRestaurant));
+    }
+    
+    // Đảm bảo xóa token và session vì trang này không yêu cầu đăng nhập
+    localStorage.removeItem('token');
+    localStorage.removeItem('restaurant');
   }, []);
 
-  const handleBackToLogin = async () => {
-    await logout();
+  const handleBackToLogin = () => {
+    localStorage.removeItem('pendingRestaurant');
     navigate('/login');
   };
 
@@ -34,15 +43,15 @@ export default function WaitingApprovalPage() {
           </h1>
 
           {/* Thông tin nhà hàng */}
-          {restaurant && (
+          {pendingRestaurant && (
             <div className="bg-gray-50 rounded-lg p-6 mb-6">
               <h2 className="font-semibold text-gray-900 mb-2">
                 Thông tin nhà hàng đã đăng ký:
               </h2>
               <div className="space-y-2 text-gray-700">
-                <p><span className="font-medium">Tên nhà hàng:</span> {restaurant.name}</p>
-                <p><span className="font-medium">Địa chỉ:</span> {restaurant.address}</p>
-                <p><span className="font-medium">Số điện thoại:</span> {restaurant.phone}</p>
+                <p><span className="font-medium">Tên nhà hàng:</span> {pendingRestaurant.name}</p>
+                <p><span className="font-medium">Địa chỉ:</span> {pendingRestaurant.address}</p>
+                <p><span className="font-medium">Số điện thoại:</span> {pendingRestaurant.phone}</p>
               </div>
             </div>
           )}
@@ -130,10 +139,10 @@ export default function WaitingApprovalPage() {
               </a>
             </div>
 
-            {/* Nút quay lại đăng nhập */}
+            {/* Action button */}
             <button
               onClick={handleBackToLogin}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 border-2 border-gray-300 hover:border-orange-500 hover:bg-orange-50 text-gray-700 hover:text-orange-600 rounded-lg transition-all font-medium"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-all font-medium"
             >
               <ArrowLeft className="w-5 h-5" />
               Quay lại đăng nhập

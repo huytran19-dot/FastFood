@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { User, Mail, Lock, Phone, Store } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
+import { useToast } from '@/hooks/use-toast'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -17,7 +18,7 @@ export default function RegisterPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const { register } = useAuth()
-  const navigate = useNavigate()
+  const { toast } = useToast()
 
   const handleChange = (e) => {
     setFormData(prev => ({
@@ -100,7 +101,7 @@ export default function RegisterPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="owner@restaurant.com"
+                  placeholder="chuhang@example.com"
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -125,7 +126,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {/* Password */}
+              {/* Mật khẩu */}
               <div>
                 <Label htmlFor="password" className="flex items-center gap-2">
                   <Lock className="h-4 w-4" />
@@ -143,7 +144,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {/* Confirm Password */}
+              {/* Xác nhận mật khẩu */}
               <div>
                 <Label htmlFor="confirmPassword" className="flex items-center gap-2">
                   <Lock className="h-4 w-4" />
@@ -171,7 +172,7 @@ export default function RegisterPage() {
                 {isLoading ? 'Đang đăng ký...' : 'Đăng Ký'}
               </Button>
 
-              {/* Login Link */}
+              {/* Link đăng nhập */}
               <p className="text-center text-sm text-muted-foreground">
                 Đã có tài khoản?{' '}
                 <Link to="/login" className="text-primary hover:underline font-medium">
@@ -185,7 +186,7 @@ export default function RegisterPage() {
         {/* Footer Note */}
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>Sau khi đăng ký, bạn sẽ cần đăng ký thông tin nhà hàng</p>
-          <p className="mt-1">FastFood Restaurant Dashboard</p>
+          <p className="mt-1">Hệ Thống Quản Lý Nhà Hàng FastFood</p>
         </div>
       </div>
     </div>

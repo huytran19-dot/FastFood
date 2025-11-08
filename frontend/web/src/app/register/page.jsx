@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useNavigate, Link } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/hooks/use-toast"
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -18,6 +19,7 @@ export default function RegisterPage() {
   })
   const navigate = useNavigate()
   const { register } = useAuth()
+  const { toast } = useToast()
 
   const handleChange = (e) => {
     setFormData(prev => ({
@@ -30,7 +32,11 @@ export default function RegisterPage() {
     e.preventDefault()
     
     if (formData.password !== formData.confirmPassword) {
-      // This would show an error toast via useAuth
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Mật khẩu xác nhận không khớp',
+      })
       return
     }
     
@@ -45,8 +51,10 @@ export default function RegisterPage() {
         role: 'user'
       })
       
-      // Redirect to home page
-      navigate("/")
+      // Chuyển đến trang thông báo verify email
+      navigate("/verify-email", { 
+        state: { email: formData.email } 
+      })
     } catch (error) {
       console.error('Registration error:', error)
     } finally {
@@ -69,17 +77,17 @@ export default function RegisterPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Register</CardTitle>
-            <CardDescription>Create a new account to start ordering</CardDescription>
+            <CardTitle>Đăng Ký</CardTitle>
+            <CardDescription>Tạo tài khoản mới để bắt đầu đặt món</CardDescription>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Họ và tên</Label>
                 <Input 
                   id="name" 
-                  placeholder="John Doe" 
+                  placeholder="Nguyễn Văn A" 
                   value={formData.name}
                   onChange={handleChange}
                   required 
@@ -99,11 +107,11 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">Số điện thoại</Label>
                 <Input 
                   id="phone" 
                   type="tel" 
-                  placeholder="+1234567890" 
+                  placeholder="0901234567" 
                   value={formData.phone}
                   onChange={handleChange}
                   required 
@@ -111,7 +119,7 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Mật khẩu</Label>
                 <Input 
                   id="password" 
                   type="password" 
@@ -123,7 +131,7 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
                 <Input 
                   id="confirmPassword" 
                   type="password" 
@@ -135,14 +143,14 @@ export default function RegisterPage() {
               </div>
 
               <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Register"}
+                {isLoading ? "Đang tạo tài khoản..." : "Đăng ký"}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
+              Đã có tài khoản?{" "}
               <Link to="/login" className="font-medium text-primary hover:underline">
-                Login
+                Đăng nhập
               </Link>
             </div>
           </CardContent>

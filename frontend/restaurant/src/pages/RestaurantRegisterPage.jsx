@@ -12,7 +12,7 @@ import { restaurantAPI } from "@/lib/api"
 
 export default function RestaurantRegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
-  const { user, updateRestaurant } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
   
@@ -39,15 +39,34 @@ export default function RestaurantRegisterPage() {
     setIsLoading(true)
 
     try {
-      const restaurant = await restaurantAPI.register(formData)
-      updateRestaurant(restaurant)
+      // Combine open_time and close_time into operating_hours
+      const submitData = {
+        name: formData.name,
+        address: formData.address,
+        city: formData.city,
+        phone: formData.phone,
+        description: formData.description,
+        image_url: formData.image_url,
+        operating_hours: `${formData.open_time}-${formData.close_time}`
+      }
+
+      const restaurant = await restaurantAPI.register(submitData)
+      
+      // Lưu thông tin tạm để dùng ở trang pending (không lưu vào restaurant context vì chưa được duyệt)
+      const pendingData = {
+        ...restaurant,
+        phone: formData.phone, // Số điện thoại để login lại
+        // Không lưu password vì lý do bảo mật - sẽ yêu cầu đăng nhập lại nếu cần check status
+      }
+      localStorage.setItem('pendingRestaurant', JSON.stringify(pendingData))
 
       toast({
         title: "Đăng ký nhà hàng thành công!",
         description: "Nhà hàng của bạn đang chờ quản trị viên duyệt.",
       })
 
-      // Guard will redirect to pending page
+      // Redirect to pending page
+      navigate('/pending')
     } catch (error) {
       toast({
         variant: "destructive",

@@ -12,6 +12,7 @@ import CartPage from '@/app/cart/page'
 import CheckoutPage from '@/app/checkout/page'
 import LoginPage from '@/app/login/page'
 import RegisterPage from '@/app/register/page'
+import VerifyEmailPage from '@/app/verify-email/page'
 import OrdersPage from '@/app/orders/page'
 import OrderReviewPage from '@/app/orders/[orderId]/review/page'
 import RestaurantDetailPage from '@/app/restaurant/[id]/page'
@@ -32,6 +33,7 @@ function App() {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/orders/:orderId/review" element={<OrderReviewPage />} />
               <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />

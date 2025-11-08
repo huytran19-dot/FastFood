@@ -52,7 +52,7 @@ class restaurants extends Sequelize.Model {
       type: DataTypes.DOUBLE,
       allowNull: false,
       defaultValue: 0
-    },
+    }, 
     status: {
       type: DataTypes.TINYINT,
       allowNull: false,
