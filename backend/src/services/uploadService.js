@@ -1,6 +1,17 @@
 const cloudinary = require('cloudinary').v2;
-const dotenv = require('dotenv');
-dotenv.config();
+
+// Cloudinary config - must check env vars are loaded
+if (!process.env.CLOUD_NAME || !process.env.CLOUD_API_KEY || !process.env.CLOUD_API_SECRET) {
+  console.error('❌ CLOUDINARY CONFIG ERROR:');
+  console.error('Missing environment variables:');
+  console.error('  CLOUD_NAME:', process.env.CLOUD_NAME ? '✓' : '✗ MISSING');
+  console.error('  CLOUD_API_KEY:', process.env.CLOUD_API_KEY ? '✓' : '✗ MISSING');
+  console.error('  CLOUD_API_SECRET:', process.env.CLOUD_API_SECRET ? '✓' : '✗ MISSING');
+  console.error('Please check your .env file in backend folder');
+  throw new Error('Cloudinary configuration is incomplete. Check .env file.');
+}
+
+console.log('✅ Cloudinary configured:', process.env.CLOUD_NAME);
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,

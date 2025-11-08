@@ -1,65 +1,10 @@
+import { useState, useEffect } from "react"
 import { RestaurantCard } from "@/components/restaurant-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plane, Zap, Shield, Clock } from "lucide-react"
-
-// Mock data
-const restaurants = [
-  {
-    id: "1",
-    name: "Fast Burger Drone",
-    image: "/delicious-burger-restaurant.jpg",
-    rating: 4.7,
-    deliveryTime: "15-20 phút",
-    address: "123 Trần Hưng Đạo, Q1",
-    droneEnabled: true,
-  },
-  {
-    id: "2",
-    name: "Pizza Express",
-    image: "/italian-pizza-restaurant.jpg",
-    rating: 4.5,
-    deliveryTime: "20-25 phút",
-    address: "456 Nguyễn Huệ, Q1",
-    droneEnabled: true,
-  },
-  {
-    id: "3",
-    name: "Phở Hà Nội",
-    image: "/vietnamese-pho-restaurant.png",
-    rating: 4.8,
-    deliveryTime: "10-15 phút",
-    address: "789 Lê Lợi, Q1",
-    droneEnabled: true,
-  },
-  {
-    id: "4",
-    name: "Sushi Tokyo",
-    image: "/japanese-sushi-restaurant.png",
-    rating: 4.6,
-    deliveryTime: "25-30 phút",
-    address: "321 Hai Bà Trưng, Q3",
-    droneEnabled: false,
-  },
-  {
-    id: "5",
-    name: "Gà Rán Giòn",
-    image: "/fried-chicken-restaurant.png",
-    rating: 4.4,
-    deliveryTime: "15-20 phút",
-    address: "654 Võ Văn Tần, Q3",
-    droneEnabled: true,
-  },
-  {
-    id: "6",
-    name: "Bún Bò Huế",
-    image: "/vietnamese-bun-bo-hue.jpg",
-    rating: 4.9,
-    deliveryTime: "10-15 phút",
-    address: "987 Pasteur, Q1",
-    droneEnabled: true,
-  },
-]
+import { Plane, Zap, Shield, Clock, Loader2 } from "lucide-react"
+import { publicAPI } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 
 const features = [
   {
@@ -80,6 +25,44 @@ const features = [
 ]
 
 export default function HomePage() {
+  const [restaurants, setRestaurants] = useState([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    fetchRestaurants()
+  }, [])
+
+  const fetchRestaurants = async () => {
+    try {
+      setLoading(true)
+      const data = await publicAPI.getRestaurants()
+      
+      // Transform data để match với UI component
+      const transformedData = data.map(restaurant => ({
+        id: restaurant.id,
+        name: restaurant.name,
+        image: restaurant.image_url || "/delicious-burger-restaurant.jpg",
+        rating: restaurant.rating || 4.5,
+        deliveryTime: "15-20 phút", // Có thể tính toán từ location sau
+        address: restaurant.address,
+        droneEnabled: true, // Mặc định true vì đã approved
+      }))
+      
+      setRestaurants(transformedData)
+    } catch (error) {
+      console.error('Failed to fetch restaurants:', error)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách nhà hàng. Vui lòng thử lại sau.",
+        variant: "destructive"
+      })
+      // Fallback to empty array
+      setRestaurants([])
+    } finally {
+      setLoading(false)
+    }
+  }
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -141,11 +124,24 @@ export default function HomePage() {
             <Button variant="outline">Xem tất cả</Button>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {restaurants.map((restaurant) => (
-              <RestaurantCard key={restaurant.id} {...restaurant} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Đang tải danh sách nhà hàng...</p>
+              </div>
+            </div>
+          ) : restaurants.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Chưa có nhà hàng nào</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {restaurants.map((restaurant) => (
+                <RestaurantCard key={restaurant.id} {...restaurant} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

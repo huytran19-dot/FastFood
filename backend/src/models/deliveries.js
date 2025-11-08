@@ -1,6 +1,11 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('deliveries', {
+module.exports = (sequelize, DataTypes) => {
+  return deliveries.init(sequelize, DataTypes);
+}
+
+class deliveries extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+  return super.init({
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
@@ -33,7 +38,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     status: {
       type: DataTypes.STRING(50),
-      allowNull: true
+      allowNull: false
     },
     delivered_at: {
       type: DataTypes.DATE,
@@ -75,4 +80,5 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+  }
+}

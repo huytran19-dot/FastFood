@@ -1,6 +1,11 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('cartItems', {
+module.exports = (sequelize, DataTypes) => {
+  return cart_items.init(sequelize, DataTypes);
+}
+
+class cart_items extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+  return super.init({
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
@@ -34,7 +39,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     added_at: {
       type: DataTypes.DATE,
-      allowNull: true,
+      allowNull: false,
       defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP')
     }
   }, {
@@ -48,6 +53,15 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "id" },
+        ]
+      },
+      {
+        name: "uq_cart_item",
+        unique: true,
+        using: "BTREE",
+        fields: [
+          { name: "cart_id" },
+          { name: "item_id" },
         ]
       },
       {
@@ -66,4 +80,5 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+  }
+}

@@ -1,6 +1,11 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('menuItems', {
+module.exports = (sequelize, DataTypes) => {
+  return menu_items.init(sequelize, DataTypes);
+}
+
+class menu_items extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+  return super.init({
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
@@ -12,6 +17,14 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: false,
       references: {
         model: 'restaurants',
+        key: 'id'
+      }
+    },
+    category_id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: 'categories',
         key: 'id'
       }
     },
@@ -33,13 +46,16 @@ module.exports = function(sequelize, DataTypes) {
     },
     is_available: {
       type: DataTypes.BOOLEAN,
-      allowNull: true,
+      allowNull: false,
       defaultValue: 1
     }
   }, {
     sequelize,
     tableName: 'menu_items',
     timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         name: "PRIMARY",
@@ -47,6 +63,15 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "id" },
+        ]
+      },
+      {
+        name: "uq_menu_items_restaurant_name",
+        unique: true,
+        using: "BTREE",
+        fields: [
+          { name: "restaurant_id" },
+          { name: "name" },
         ]
       },
       {
@@ -63,6 +88,14 @@ module.exports = function(sequelize, DataTypes) {
           { name: "is_available" },
         ]
       },
+      {
+        name: "idx_menu_items_category",
+        using: "BTREE",
+        fields: [
+          { name: "category_id" },
+        ]
+      },
     ]
   });
-};
+  }
+}

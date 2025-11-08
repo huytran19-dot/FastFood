@@ -94,7 +94,7 @@ const restaurantAuthService = {
           role: user.role.name,
           restaurant_id: restaurant.id
         },
-        process.env.JWT_SECRET || 'your-secret-key',
+        process.env.JWT_SECRET || 'fastfood-secret-key-change-in-production',
         { expiresIn: '7d' }
       );
 

@@ -1,6 +1,11 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('carts', {
+module.exports = (sequelize, DataTypes) => {
+  return carts.init(sequelize, DataTypes);
+}
+
+class carts extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+  return super.init({
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
@@ -27,6 +32,9 @@ module.exports = function(sequelize, DataTypes) {
     sequelize,
     tableName: 'carts',
     timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         name: "PRIMARY",
@@ -52,4 +60,5 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+  }
+}

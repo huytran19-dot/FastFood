@@ -11,6 +11,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
 const restaurantAuthRoutes = require('./routes/restaurantAuthRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const menuRoutes = require('./routes/menuRoutes');
+const publicRoutes = require('./routes/publicRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -50,6 +52,9 @@ app.use(express.json());
 app.use(cookieParser());
 
 // ===== MOUNT ROUTES =====
+// Public routes - MUST be first, no auth required
+app.use('/api/public', publicRoutes);
+
 // Auth routes
 app.use('/api/auth', authRoutes);
 
@@ -70,6 +75,9 @@ app.use('/api/restaurant', restaurantRoutes); // Protected routes - requires aut
 
 // Upload routes
 app.use('/api/upload', uploadRoutes);
+
+// Menu routes
+app.use('/api/menu', menuRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

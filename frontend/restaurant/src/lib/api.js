@@ -172,3 +172,81 @@ export const restaurantAPI = {
     }
   }
 };
+
+// Menu API
+export const menuAPI = {
+  // Get all menu items
+  async getAll(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.search) params.append('search', filters.search);
+    if (filters.is_available !== undefined) params.append('is_available', filters.is_available);
+    
+    const url = `${API_BASE_URL}/menu${params.toString() ? '?' + params.toString() : ''}`;
+    
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  // Get single menu item
+  async getById(id) {
+    const response = await fetch(`${API_BASE_URL}/menu/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  // Create menu item
+  async create(menuData) {
+    const response = await fetch(`${API_BASE_URL}/menu`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(menuData),
+    });
+    
+    return handleResponse(response);
+  },
+
+  // Update menu item
+  async update(id, menuData) {
+    const response = await fetch(`${API_BASE_URL}/menu/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(menuData),
+    });
+    
+    return handleResponse(response);
+  },
+
+  // Toggle menu item availability
+  async toggleAvailability(id) {
+    const response = await fetch(`${API_BASE_URL}/menu/${id}/toggle`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  // Delete menu item
+  async delete(id) {
+    const response = await fetch(`${API_BASE_URL}/menu/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  // Get menu statistics
+  async getStats() {
+    const response = await fetch(`${API_BASE_URL}/menu/stats`, {
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  }
+};

@@ -1,6 +1,11 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('payments', {
+module.exports = (sequelize, DataTypes) => {
+  return payments.init(sequelize, DataTypes);
+}
+
+class payments extends Sequelize.Model {
+  static init(sequelize, DataTypes) {
+  return super.init({
     id: {
       autoIncrement: true,
       type: DataTypes.INTEGER.UNSIGNED,
@@ -32,6 +37,9 @@ module.exports = function(sequelize, DataTypes) {
     sequelize,
     tableName: 'payments',
     timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         name: "PRIMARY",
@@ -58,4 +66,5 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+  }
+}

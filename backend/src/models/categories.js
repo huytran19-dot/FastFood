@@ -1,9 +1,9 @@
 const Sequelize = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  return roles.init(sequelize, DataTypes);
+  return categories.init(sequelize, DataTypes);
 }
 
-class roles extends Sequelize.Model {
+class categories extends Sequelize.Model {
   static init(sequelize, DataTypes) {
   return super.init({
     id: {
@@ -13,14 +13,22 @@ class roles extends Sequelize.Model {
       primaryKey: true
     },
     name: {
-      type: DataTypes.ENUM('admin','restaurant','user'),
+      type: DataTypes.STRING(100),
       allowNull: false,
-      unique: "uq_roles_name"
+      unique: "uq_categories_name"
+    },
+    status: {
+      type: DataTypes.TINYINT,
+      allowNull: false,
+      defaultValue: 1
     }
   }, {
     sequelize,
-    tableName: 'roles',
-    timestamps: false,
+    tableName: 'categories',
+    timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         name: "PRIMARY",
@@ -31,11 +39,18 @@ class roles extends Sequelize.Model {
         ]
       },
       {
-        name: "uq_roles_name",
+        name: "uq_categories_name",
         unique: true,
         using: "BTREE",
         fields: [
           { name: "name" },
+        ]
+      },
+      {
+        name: "idx_categories_status",
+        using: "BTREE",
+        fields: [
+          { name: "status" },
         ]
       },
     ]
