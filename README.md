@@ -1,190 +1,212 @@
-# 🍔 FastFood - Multi-App Restaurant System
+# FastFood - Hệ thống đặt đồ ăn nhanh
 
-A complete food delivery platform with separated apps for customers, restaurant owners, and administrators.
+Hệ thống quản lý đồ ăn nhanh với 3 ứng dụng: Web người dùng, Dashboard nhà hàng và Admin panel.
 
-## 🏗️ Architecture
-
-This system consists of **three separate applications**:
-
-1. **User App** (Port 5173) - Customer-facing app for browsing and ordering
-2. **Restaurant App** (Port 5175) - Restaurant owner management dashboard
-3. **Admin App** (Port 5174) - Admin panel for approving restaurants
-
-## 🚀 Quick Start
-
-### 1. Setup Database
-```bash
-cd backend
-mysql -u root -p food < database-migration.sql
-mysql -u root -p food < demo-accounts.sql
-cd ..
-```
-
-### 2. Start All Apps
-```bash
-npm run dev
-```
-
-### 3. Access Apps
-- User App: http://localhost:5173
-- Admin App: http://localhost:5174
-- Restaurant App: http://localhost:5175
-- API: http://localhost:5000
-
-### 4. Login with Demo Accounts
-- **Admin**: admin@fastfood.com / admin123
-- **Owner (Approved)**: owner@demo.com / owner123
-- **Owner (Pending)**: owner2@demo.com / owner123
-- **Owner (Rejected)**: owner3@demo.com / owner123
-- **Customer**: user@demo.com / user123
-
-## 📚 Documentation
-
-### Getting Started
-- **[NEXT_STEPS.md](NEXT_STEPS.md)** - ⭐ START HERE! Complete guide for what to do next
-- **[QUICK_START.md](QUICK_START.md)** - Quick commands & demo accounts reference
-
-### Testing & Validation
-- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Complete testing scenarios (8 scenarios, API tests, checklist)
-- **[DATABASE_QUERIES.md](DATABASE_QUERIES.md)** - SQL queries for debugging & development
-
-### Implementation Details
-- **[RESTAURANT_APP_GUIDE.md](RESTAURANT_APP_GUIDE.md)** - Restaurant app documentation
-- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Full setup instructions
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - What was built
-
-## ✨ Features
-
-### Restaurant Owner Flow
-1. Register account → role='owner'
-2. Register restaurant → status='PENDING'
-3. Wait for admin approval
-4. Access dashboard when approved
-
-### Smart Routing Guards
-- **PENDING**: Owner sees waiting page, cannot access dashboard
-- **REJECTED**: Owner sees rejection reason with details
-- **APPROVED**: Owner gets full dashboard access
-
-### Admin Approval System
-- View all pending restaurants
-- Approve with one click
-- Reject with reason
-- Automatic notifications
-
-## 🛠️ Tech Stack
-
-### Frontend
-- React 18.3.1
-- Vite 5.4.11
-- Tailwind CSS 3.4.17
-- React Router 6.28.0
-- Radix UI Components
-
-### Backend
-- Express 5.1.0
-- Sequelize 6.37.7
-- MySQL2
-- JWT Authentication
-- bcryptjs
-
-## 📂 Project Structure
+## 📁 Cấu trúc dự án
 
 ```
 FastFood/
-├── frontend/
-│   ├── web/          # User App (5173)
-│   ├── restaurant/   # Restaurant App (5175)
-│   └── admin/        # Admin App (5174)
-├── backend/
+├── backend/                 # Node.js + Express + Sequelize + MySQL
 │   ├── src/
-│   │   ├── index.js           # Express server
-│   │   ├── models/            # Sequelize models
-│   │   └── controllers/       # Route controllers
-│   ├── database-migration.sql # Schema + admin
-│   └── demo-accounts.sql      # Test accounts
-└── docs/                      # All .md files
+│   │   ├── routes/         # Định nghĩa API endpoints
+│   │   ├── controllers/    # Xử lý request/response
+│   │   ├── services/       # Business logic
+│   │   ├── models/         # Sequelize models
+│   │   └── config/         # Cấu hình DB, email
+│   └── .env                # Biến môi trường
+│
+└── frontend/
+    ├── web/                # App người dùng (port 5173)
+    ├── restaurant/         # Dashboard nhà hàng (port 5175)
+    └── admin/project/      # Admin panel (port 5174)
 ```
 
-## 🎯 Next Development Tasks
+## 🚀 Khởi chạy dự án
 
-### ✅ Completed: User App Cleanup
-User app has been cleaned up and now only contains customer features. All restaurant owner features have been moved to the separate restaurant app. See **[USER_APP_CLEANUP.md](USER_APP_CLEANUP.md)** for details.
+### Yêu cầu
+- Node.js 16+
+- MySQL 8.0+
+- npm 
 
-### Priority 1: Admin Pending Restaurants Page
-Create `/restaurants/pending` page in admin app with approve/reject functionality.
+### Bước 1: Cài đặt dependencies
 
-### Priority 2: User App Restaurant List
-Show only approved restaurants to customers with filtering/search.
-
-### Priority 3: Connect Frontend to Backend API
-Update all three apps to use real backend API instead of localStorage mock data.
-
-See **[NEXT_STEPS.md](NEXT_STEPS.md)** for detailed implementation guide.
-
-## 🐛 Troubleshooting
-
-### "Cannot connect to database"
 ```bash
-mysql -u root -p
-USE food;
-SHOW TABLES;
+# Backend
+cd backend
+npm install
+
+# Frontend Web
+cd frontend/web
+npm install
+
+# Frontend Restaurant
+cd frontend/restaurant
+npm install
+
+# Frontend Admin
+cd frontend/admin/project
+npm install
 ```
 
-### "Token invalid"
-```javascript
-// In browser console
-localStorage.clear();
+### Bước 2: Cấu hình môi trường
+
+Tạo file `backend/.env`:
+
+```env
+# Database
+DB_HOST=localhost
+DB_PORT=3307
+DB_NAME=fastfood
+DB_USER=root
+DB_PASSWORD=your_password
+
+# JWT
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=7d
+
+# SendGrid Email
+SENDGRID_API_KEY=your_sendgrid_key
+SENDGRID_FROM_EMAIL=noreply@yourdomain.com
+
+# Cloudinary (Upload ảnh)
+CLOUD_NAME=your_cloud_name
+CLOUD_API_KEY=your_api_key
+CLOUD_API_SECRET=your_api_secret
+
+# Server
+PORT=5000
 ```
 
-### "Port already in use"
+### Bước 3: Khởi tạo database
+
 ```bash
-netstat -ano | findstr :5000
-taskkill /PID <PID> /F
+# Import schema từ fastfood-DB.txt vào MySQL
+mysql -u root -p fastfood < fastfood-DB.txt
 ```
 
-See **[TESTING_GUIDE.md](TESTING_GUIDE.md)** for more solutions.
+### Bước 4: Chạy ứng dụng
 
-## 📊 Demo Accounts Summary
+```bash
+# Terminal 1 - Backend (port 5000)
+cd backend
+npm run dev
 
-| Role | Email | Password | Status | Purpose |
-|------|-------|----------|--------|---------|
-| Admin | admin@fastfood.com | admin123 | - | Approve/reject restaurants |
-| Owner | owner@demo.com | owner123 | ✅ APPROVED | Full dashboard access |
-| Owner | owner2@demo.com | owner123 | ⏳ PENDING | Waiting for approval |
-| Owner | owner3@demo.com | owner123 | ❌ REJECTED | See rejection reason |
-| Customer | user@demo.com | user123 | - | Browse restaurants |
+# Terminal 2 - Frontend Web (port 5173)
+cd frontend/web
+npm run dev
 
-## 🎓 Key Concepts
+# Terminal 3 - Frontend Restaurant (port 5175)
+cd frontend/restaurant
+npm run dev
 
-### Role-Based Authentication
-- `user` - Customers (browse & order)
-- `owner` - Restaurant owners (manage restaurant)
-- `admin` - Administrators (approve restaurants)
+# Terminal 4 - Frontend Admin (port 5174)
+cd frontend/admin/project
+npm run dev
+```
 
-### Restaurant Review Status
-- `PENDING` - Waiting for admin approval
-- `APPROVED` - Active, visible to customers
-- `REJECTED` - Not approved, reason provided
+## � Tính năng chính
 
-### API Endpoints
-- `/api/auth/*` - Authentication (login, signup)
-- `/api/restaurants/*` - Restaurant CRUD (owner only)
-- `/api/admin/restaurants/*` - Approve/reject (admin only)
-- `/api/public/restaurants` - List approved (public)
+### 👤 Web người dùng
+- Đăng ký/Đăng nhập với xác thực email
+- Xem thực đơn và đặt món
+- Theo dõi đơn hàng
+- Quản lý thông tin cá nhân
 
-## 📝 Contributing
+### 🍔 Dashboard nhà hàng
+- Đăng ký nhà hàng (chờ admin duyệt)
+- Quản lý thực đơn
+- Xử lý đơn hàng
+- Theo dõi giao hàng
 
-When making changes:
-1. Test with all 5 demo accounts
-2. Run full testing checklist
-3. Verify database consistency
-4. Update relevant documentation
+### 👨‍💼 Admin panel
+- Quản lý người dùng
+- Duyệt/Từ chối nhà hàng
+- Giám sát hệ thống
+
+## 📚 API Routes
+
+### User Authentication
+- `POST /api/auth/register` - Đăng ký người dùng
+- `POST /api/auth/login` - Đăng nhập
+- `GET /api/auth/verify-email/:token` - Xác thực email
+
+### Restaurant Authentication
+- `POST /api/restaurant-auth/register` - Đăng ký nhà hàng
+- `POST /api/restaurant-auth/login` - Đăng nhập nhà hàng
+
+### Admin Authentication
+- `POST /api/admin-auth/login` - Đăng nhập admin
+- `GET /api/admin-auth/users` - Danh sách users
+- `GET /api/admin-auth/restaurants` - Danh sách nhà hàng
+- `PUT /api/admin-auth/restaurants/:id/review` - Duyệt nhà hàng
+
+### Upload
+- `POST /api/upload` - Upload ảnh lên Cloudinary
+
+## � Tech Stack
+
+### Backend
+- **Framework**: Express.js
+- **ORM**: Sequelize
+- **Database**: MySQL
+- **Auth**: bcryptjs + JWT
+- **Email**: SendGrid
+- **Upload**: Cloudinary
+
+### Frontend
+- **Framework**: React 18
+- **Build**: Vite 5
+- **UI**: Tailwind CSS + Radix UI
+- **Routing**: React Router
+- **State**: Context API
+
+## � Database Schema
+
+Các bảng chính:
+- `users` - Người dùng (email_verified, role_id)
+- `restaurants` - Nhà hàng (review_status: PENDING/APPROVED/REJECTED)
+- `roles` - Phân quyền (admin/restaurant/user)
+- `menu_items` - Thực đơn
+- `orders` - Đơn hàng
+- `order_items` - Chi tiết đơn hàng
+- `deliveries` - Giao hàng
+- `drones` - Drone giao hàng
+- `payments` - Thanh toán
+
+## 🔧 Cấu hình quan trọng
+
+### Email Verification
+- Chỉ áp dụng cho user đăng ký
+- Token hết hạn sau 24 giờ
+- Gửi qua SendGrid
+
+### Restaurant Approval
+- Trạng thái mặc định: PENDING
+- Admin có thể APPROVED/REJECTED
+- Chỉ nhà hàng được duyệt mới truy cập dashboard
+
+### Upload Images
+- Sử dụng Cloudinary
+- Cần cấu hình credentials trong .env
+- Hỗ trợ jpg, png, jpeg
+
+## 🐛 Debugging
+
+### Backend không khởi động
+- Kiểm tra MySQL đã chạy chưa
+- Xem file .env có đầy đủ không
+- Check log trong terminal
+
+### Frontend không kết nối API
+- Backend phải chạy trước (port 5000)
+- Kiểm tra CORS settings
+- Xem DevTools Console
+
+### Email không gửi được
+- Verify SENDGRID_API_KEY
+- Check spam folder
+- Xem log backend
 
 ## 📄 License
 
 MIT
-
----
-
-**Ready to start?** → Read **[NEXT_STEPS.md](NEXT_STEPS.md)** now!
