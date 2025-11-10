@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronLeft, CreditCard, Wallet, Banknote, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,34 +9,96 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { useNavigate } from "react-router-dom"
 import { Link } from "react-router-dom"
-
-// Mock cart data
-const mockCartItems = [
-  { id: "1", name: "Burger Bò Phô Mai", price: 89000, quantity: 2, image: "/burger-cheese.jpg" },
-  { id: "4", name: "Trà Đào", price: 25000, quantity: 1, image: "/peach-tea.jpg" },
-]
+import { useCart } from "@/contexts/CartContext"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("wallet")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [deliveryInfo, setDeliveryInfo] = useState({
+    fullName: "",
+    phone: "",
+    address: "",
+    note: ""
+  })
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { cart, clearCart } = useCart()
+  const { user, isAuthenticated } = useAuth()
 
-  const subtotal = mockCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  useEffect(() => {
+    // Redirect nếu chưa login
+    if (!isAuthenticated) {
+      toast({
+        title: "Vui lòng đăng nhập",
+        description: "Bạn cần đăng nhập để thanh toán",
+        variant: "destructive"
+      })
+      navigate("/login")
+      return
+    }
+
+    // Redirect nếu giỏ hàng trống
+    if (cart.items.length === 0) {
+      toast({
+        title: "Giỏ hàng trống",
+        description: "Vui lòng thêm món trước khi thanh toán",
+        variant: "destructive"
+      })
+      navigate("/")
+      return
+    }
+
+    // Pre-fill thông tin từ user
+    if (user) {
+      setDeliveryInfo(prev => ({
+        ...prev,
+        fullName: user.full_name || user.name || "",
+        phone: user.phone || ""
+      }))
+    }
+  }, [isAuthenticated, cart.items, user, navigate, toast])
+
+  const subtotal = cart.total || 0
   const deliveryFee = 15000
   const total = subtotal + deliveryFee
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault()
+    
+    // Validate
+    if (!deliveryInfo.fullName || !deliveryInfo.phone || !deliveryInfo.address) {
+      toast({
+        title: "Thiếu thông tin",
+        description: "Vui lòng điền đầy đủ thông tin giao hàng",
+        variant: "destructive"
+      })
+      return
+    }
+
     setIsProcessing(true)
 
-    setTimeout(() => {
-      setIsProcessing(false)
-      toast({
-        title: "Đặt hàng thành công!",
-        description: "Drone sẽ giao hàng trong 15-20 phút",
-      })
-      navigate("/tracking/FD-000123")
+    // TODO: Gọi API tạo order khi có backend endpoint
+    // Tạm thời dùng mock
+    setTimeout(async () => {
+      try {
+        // Clear cart sau khi đặt hàng thành công
+        await clearCart()
+        
+        setIsProcessing(false)
+        toast({
+          title: "Đặt hàng thành công!",
+          description: "Drone sẽ giao hàng trong 15-20 phút",
+        })
+        navigate("/orders") // Chuyển đến trang đơn hàng thay vì tracking
+      } catch (error) {
+        setIsProcessing(false)
+        toast({
+          title: "Lỗi",
+          description: "Không thể đặt hàng. Vui lòng thử lại",
+          variant: "destructive"
+        })
+      }
     }, 2000)
   }
 
@@ -68,17 +130,32 @@ export default function CheckoutPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="fullName">Họ và tên</Label>
-                      <Input id="fullName" placeholder="Nguyễn Văn A" required />
+                      <Input 
+                        id="fullName" 
+                        placeholder="Nguyễn Văn A" 
+                        value={deliveryInfo.fullName}
+                        onChange={(e) => setDeliveryInfo({...deliveryInfo, fullName: e.target.value})}
+                        required 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Số điện thoại</Label>
-                      <Input id="phone" type="tel" placeholder="0909 123 456" required />
+                      <Input 
+                        id="phone" 
+                        type="tel" 
+                        placeholder="0909 123 456"
+                        value={deliveryInfo.phone}
+                        onChange={(e) => setDeliveryInfo({...deliveryInfo, phone: e.target.value})}
+                        required 
+                      />
                     </div>
                     <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="address">Địa chỉ chi tiết</Label>
                       <Textarea
                         id="address"
                         placeholder="Số nhà, tên đường, phường/xã, quận/huyện"
+                        value={deliveryInfo.address}
+                        onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})}
                         required
                       />
                     </div>
@@ -87,6 +164,8 @@ export default function CheckoutPage() {
                       <Textarea
                         id="note"
                         placeholder="Ghi chú cho người giao hàng (không bắt buộc)"
+                        value={deliveryInfo.note}
+                        onChange={(e) => setDeliveryInfo({...deliveryInfo, note: e.target.value})}
                       />
                     </div>
                   </div>
@@ -155,7 +234,7 @@ export default function CheckoutPage() {
                 <CardContent className="space-y-4">
                   {/* Items */}
                   <div className="space-y-3">
-                    {mockCartItems.map((item) => (
+                    {cart.items.map((item) => (
                       <div key={item.id} className="flex gap-3">
                         <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
                           <img
@@ -170,7 +249,7 @@ export default function CheckoutPage() {
                           </h4>
                           <p className="text-sm text-muted-foreground">x{item.quantity}</p>
                           <p className="text-sm font-semibold text-primary">
-                            {(item.price * item.quantity).toLocaleString("vi-VN")}₫
+                            {(item.subtotal || 0).toLocaleString("vi-VN")}₫
                           </p>
                         </div>
                       </div>

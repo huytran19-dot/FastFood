@@ -13,6 +13,7 @@ const restaurantAuthRoutes = require('./routes/restaurantAuthRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const menuRoutes = require('./routes/menuRoutes');
 const publicRoutes = require('./routes/publicRoutes');
+const cartRoutes = require('./routes/cartRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -78,6 +79,9 @@ app.use('/api/upload', uploadRoutes);
 
 // Menu routes
 app.use('/api/menu', menuRoutes);
+
+// Cart routes - requires authentication
+app.use('/api/cart', cartRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -214,3 +214,130 @@ export const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+// ===== CART API (cần auth) =====
+export const cartAPI = {
+  // Lấy giỏ hàng hiện tại
+  async getCart() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi lấy giỏ hàng');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error fetching cart:', error);
+      throw error;
+    }
+  },
+
+  // Thêm món vào giỏ hàng
+  async addToCart(menuItemId, quantity = 1) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart/items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          menu_item_id: menuItemId,
+          quantity,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi thêm vào giỏ hàng');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error adding to cart:', error);
+      throw error;
+    }
+  },
+
+  // Cập nhật số lượng
+  async updateQuantity(cartItemId, quantity) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart/items/${cartItemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ quantity }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi cập nhật số lượng');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error updating quantity:', error);
+      throw error;
+    }
+  },
+
+  // Xóa món khỏi giỏ hàng
+  async removeItem(cartItemId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart/items/${cartItemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi xóa món');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error removing item:', error);
+      throw error;
+    }
+  },
+
+  // Xóa toàn bộ giỏ hàng
+  async clearCart() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi xóa giỏ hàng');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error clearing cart:', error);
+      throw error;
+    }
+  },
+};

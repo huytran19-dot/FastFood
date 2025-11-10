@@ -25,7 +25,7 @@ const comparePassword = async (password, hash) => {
 // Generate JWT token
 const generateJWT = (userId, email) => {
   return jwt.sign(
-    { id: userId, email },
+    { userId: userId, user_id: userId, id: userId, email },
     process.env.JWT_SECRET || 'your-secret-key',
     { expiresIn: '7d' }
   );

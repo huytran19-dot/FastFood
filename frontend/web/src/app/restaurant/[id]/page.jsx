@@ -9,15 +9,16 @@ import { useToast } from "@/hooks/use-toast"
 import { Link } from "react-router-dom"
 import { useParams } from "react-router-dom"
 import { publicAPI } from "@/lib/api"
+import { useCart } from "@/contexts/CartContext"
 
 export default function RestaurantPage() {
   const { id } = useParams()
   const [restaurant, setRestaurant] = useState(null)
   const [menuItems, setMenuItems] = useState([])
   const [loading, setLoading] = useState(true)
-  const [cartItems, setCartItems] = useState([])
   const [activeTab, setActiveTab] = useState("all")
   const { toast } = useToast()
+  const { cart, addToCart, loading: cartLoading } = useCart()
 
   useEffect(() => {
     if (id) {
@@ -65,33 +66,9 @@ export default function RestaurantPage() {
     }
   }
 
-  const handleAddToCart = (item) => {
-    setCartItems((prev) => {
-      const existingItem = prev.find((i) => i.id === item.id)
-      if (existingItem) {
-        return prev.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))
-      }
-      return [...prev, { ...item, quantity: 1 }]
-    })
-    toast({
-      title: "Đã thêm vào giỏ hàng",
-      description: "Món đã được thêm vào giỏ",
-    })
-  }
-
-  const handleUpdateQuantity = (id, quantity) => {
-  setCartItems((prev) => prev.map((item) => (item.id === id ? { ...item, quantity } : item)))
-  }
-
-  const handleRemoveItem = (id) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id))
-    toast({
-      title: "Đã xóa khỏi giỏ hàng",
-    })
-  }
-
-  const handleUpdateNote = (id, note) => {
-  setCartItems((prev) => prev.map((item) => (item.id === id ? { ...item, note } : item)))
+  const handleAddToCart = async (item) => {
+    // addToCart từ CartContext sẽ handle toast
+    await addToCart(item.id, 1)
   }
 
   const filteredItems = activeTab === "all" ? menuItems : menuItems.filter((item) => item.category === activeTab)
@@ -132,12 +109,7 @@ export default function RestaurantPage() {
           </Link>
         </Button>
         <div className="absolute right-4 top-4">
-          <CartDrawer
-            items={cartItems}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveItem}
-            onUpdateNote={handleUpdateNote}
-          />
+          <CartDrawer />
         </div>
       </div>
 
@@ -197,12 +169,12 @@ export default function RestaurantPage() {
       </div>
 
       {/* Sticky Cart Button - Mobile */}
-      {cartItems.length > 0 && (
+      {cart.items.length > 0 && (
         <div className="fixed bottom-20 left-0 right-0 z-40 px-4 md:hidden">
           <Button className="w-full shadow-lg" size="lg" asChild>
             <Link to="/checkout">
-              Xem giỏ hàng ({cartItems.length}) •{" "}
-              {cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString("vi-VN")}₫
+              Xem giỏ hàng ({cart.itemCount}) •{" "}
+              {cart.total.toLocaleString("vi-VN")}₫
             </Link>
           </Button>
         </div>

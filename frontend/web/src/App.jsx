@@ -4,6 +4,7 @@ import { Footer } from '@/components/footer'
 import { BottomNav } from '@/components/bottom-nav'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { CartProvider } from '@/contexts/CartContext'
 
 // Pages
 import HomePage from '@/app/page'
@@ -21,30 +22,32 @@ import TrackingPage from '@/app/tracking/[orderId]/page'
 function App() {
   return (
     <AuthProvider>
-      <div className="flex min-h-screen flex-col">
-        
-        <Header />
-        <div className="flex flex-1">
-          <main className="flex-1 pb-16 md:pb-0">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/account" element={<AccountPage />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/verify-email" element={<VerifyEmailPage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/orders/:orderId/review" element={<OrderReviewPage />} />
-              <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
-              <Route path="/tracking/:orderId" element={<TrackingPage />} />
-            </Routes>
-          </main>
+      <CartProvider>
+        <div className="flex min-h-screen flex-col">
+          
+          <Header />
+          <div className="flex flex-1">
+            <main className="flex-1 pb-16 md:pb-0">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/orders/:orderId/review" element={<OrderReviewPage />} />
+                <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
+                <Route path="/tracking/:orderId" element={<TrackingPage />} />
+              </Routes>
+            </main>
+          </div>
+          <Footer />
+          <BottomNav />
+          <Toaster />
         </div>
-        <Footer />
-        <BottomNav />
-        <Toaster />
-      </div>
+      </CartProvider>
     </AuthProvider>
   )
 }

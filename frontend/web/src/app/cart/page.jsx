@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronLeft, Trash2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -6,50 +6,25 @@ import { QuantityStepper } from "@/components/quantity-stepper"
 import { EmptyState } from "@/components/empty-state"
 import { useToast } from "@/hooks/use-toast"
 import { Link } from "react-router-dom"
-
-// Mock cart data
-const initialCartItems = [
-  {
-    id: "1",
-    name: "Burger Bò Phô Mai",
-    price: 89000,
-    quantity: 2,
-    image: "/burger-cheese.jpg",
-    restaurant: "Fast Burger Drone",
-  },
-  {
-    id: "4",
-    name: "Trà Đào",
-    price: 25000,
-    quantity: 1,
-    image: "/peach-tea.jpg",
-    restaurant: "Fast Burger Drone",
-  },
-]
+import { useCart } from "@/contexts/CartContext"
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState(initialCartItems)
+  const { cart, updateQuantity, removeItem, loading } = useCart()
   const { toast } = useToast()
 
-  const handleUpdateQuantity = (id, quantity) => {
-    const q = Math.max(1, Number(quantity) || 1);
-    setCartItems(prev =>
-      prev.map(item => (item.id === id ? { ...item, quantity: q } : item))
-    );
+  const handleUpdateQuantity = async (cartItemId, quantity) => {
+    const q = Math.max(1, Number(quantity) || 1)
+    await updateQuantity(cartItemId, q)
   }
 
-  const handleRemoveItem = (id) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id))
-    toast({
-      title: "Đã xóa khỏi giỏ hàng",
-    })
+  const handleRemoveItem = async (cartItemId) => {
+    await removeItem(cartItemId)
   }
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const deliveryFee = 15000
-  const total = subtotal + deliveryFee
+  const total = cart.total + deliveryFee
 
-  if (cartItems.length === 0) {
+  if (cart.items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto max-w-7xl px-4 py-6">
@@ -81,13 +56,13 @@ export default function CartPage() {
               <ChevronLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold text-foreground">Giỏ hàng ({cartItems.length})</h1>
+          <h1 className="text-2xl font-bold text-foreground">Giỏ hàng ({cart.itemCount})</h1>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Cart Items */}
           <div className="space-y-4 lg:col-span-2">
-            {cartItems.map((item) => (
+            {cart.items.map((item) => (
               <Card key={item.id} className="overflow-hidden">
                 <CardContent className="p-4">
                   <div className="flex gap-4">
@@ -102,7 +77,7 @@ export default function CartPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h3 className="font-semibold text-foreground">{item.name}</h3>
-                          <p className="text-sm text-muted-foreground">{item.restaurant}</p>
+                          <p className="text-sm text-muted-foreground">{item.description || ''}</p>
                         </div>
                         <Button 
                           variant="ghost" 
@@ -119,7 +94,7 @@ export default function CartPage() {
                           onChange={(quantity) => handleUpdateQuantity(item.id, quantity)}
                         />
                         <p className="text-base font-bold text-foreground">
-                          {(item.price * item.quantity).toLocaleString("vi-VN")}₫
+                          {item.subtotal.toLocaleString("vi-VN")}₫
                         </p>
                       </div>
                     </div>
@@ -137,7 +112,7 @@ export default function CartPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tạm tính</span>
-                    <span className="font-medium text-foreground">{subtotal.toLocaleString("vi-VN")}₫</span>
+                    <span className="font-medium text-foreground">{cart.total.toLocaleString("vi-VN")}₫</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Phí giao hàng</span>

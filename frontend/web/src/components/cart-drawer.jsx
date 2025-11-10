@@ -5,10 +5,14 @@ import { QuantityStepper } from "@/components/quantity-stepper"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Trash2, ShoppingCart } from "lucide-react"
+import { useCart } from "@/contexts/CartContext"
 
-export function CartDrawer({ items = [], onUpdateQuantity, onRemoveItem, onUpdateNote }) {
-  const itemCount = items.reduce((sum, i) => sum + (i.quantity || 0), 0)
-  const total = items.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 0), 0)
+export function CartDrawer() {
+  const { cart, updateQuantity, removeItem } = useCart()
+  
+  const itemCount = cart.itemCount || 0
+  const total = cart.total || 0
+  const items = cart.items || []
 
   return (
     <Drawer>
@@ -41,24 +45,23 @@ export function CartDrawer({ items = [], onUpdateQuantity, onRemoveItem, onUpdat
                     <p className="font-medium text-foreground">{item.name}</p>
                     <p className="text-sm text-muted-foreground">{(item.price || 0).toLocaleString("vi-VN")}₫</p>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => onRemoveItem?.(item.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2">
-                  <QuantityStepper value={item.quantity || 1} onChange={(q) => onUpdateQuantity?.(item.id, q)} />
+                  <QuantityStepper value={item.quantity || 1} onChange={(q) => updateQuantity(item.id, q)} />
                   <span className="text-sm font-medium text-foreground">
-                    {((item.price || 0) * (item.quantity || 0)).toLocaleString("vi-VN")}₫
+                    {(item.subtotal || 0).toLocaleString("vi-VN")}₫
                   </span>
                 </div>
-                <div className="mt-2">
+                {/* Note: Tạm thời bỏ note field vì backend chưa có */}
+                {/* <div className="mt-2">
                   <Textarea
                     placeholder="Ghi chú cho món này"
-                    value={item.note || ""}
-                    onChange={(e) => onUpdateNote?.(item.id, e.target.value)}
                     rows={2}
                   />
-                </div>
+                </div> */}
               </div>
             </div>
           ))}
