@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { RestaurantCard } from "@/components/restaurant-card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plane, Zap, Shield, Clock, Loader2 } from "lucide-react"
 import { publicAPI } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useCart } from "@/contexts/CartContext"
 
 const features = [
   {
@@ -28,10 +30,45 @@ export default function HomePage() {
   const [restaurants, setRestaurants] = useState([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const { refreshCart } = useCart()
 
   useEffect(() => {
     fetchRestaurants()
+    checkPaymentStatus()
   }, [])
+
+  const checkPaymentStatus = async () => {
+    const paymentStatus = searchParams.get('payment')
+    const orderId = searchParams.get('orderId')
+    const amount = searchParams.get('amount')
+    const transactionNo = searchParams.get('transactionNo')
+    const message = searchParams.get('message')
+
+    if (paymentStatus) {
+      if (paymentStatus === 'success') {
+        toast({
+          title: "✅ Thanh toán thành công!",
+          description: `Đơn hàng #${orderId} đã được thanh toán. Số tiền: ${Number(amount).toLocaleString('vi-VN')}đ`,
+          duration: 5000,
+        })
+        
+        // Refresh cart sau khi thanh toán thành công
+        await refreshCart()
+      } else {
+        toast({
+          title: "❌ Thanh toán thất bại",
+          description: message || "Đã có lỗi xảy ra trong quá trình thanh toán",
+          variant: "destructive",
+          duration: 5000,
+        })
+      }
+
+      // Xóa query params khỏi URL sau khi hiển thị thông báo
+      navigate('/', { replace: true })
+    }
+  }
 
   const fetchRestaurants = async () => {
     try {

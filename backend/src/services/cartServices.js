@@ -12,7 +12,7 @@ class CartService {
         include: [{
           model: menu_items,
           as: 'item',
-          attributes: ['id', 'name', 'description', 'price', 'image_url']
+          attributes: ['id', 'name', 'description', 'price', 'image_url', 'restaurant_id']
         }]
       }]
     });

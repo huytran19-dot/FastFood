@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom"
 import { Link } from "react-router-dom"
 import { useCart } from "@/contexts/CartContext"
 import { useAuth } from "@/contexts/AuthContext"
+import { orderAPI } from "@/lib/api"
 
 export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("wallet")
@@ -76,30 +77,73 @@ export default function CheckoutPage() {
       return
     }
 
+    if (cart.items.length === 0) {
+      toast({
+        title: "Giỏ hàng trống",
+        description: "Vui lòng thêm món trước khi thanh toán",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Lấy restaurant_id từ món đầu tiên (giả sử tất cả món cùng nhà hàng)
+    // TODO: Trong thực tế cần check tất cả món cùng restaurant
+    const firstItem = cart.items[0]
+    if (!firstItem || !firstItem.restaurant_id) {
+      toast({
+        title: "Lỗi",
+        description: "Không xác định được nhà hàng",
+        variant: "destructive"
+      })
+      return
+    }
+
     setIsProcessing(true)
 
-    // TODO: Gọi API tạo order khi có backend endpoint
-    // Tạm thời dùng mock
-    setTimeout(async () => {
-      try {
-        // Clear cart sau khi đặt hàng thành công
-        await clearCart()
-        
-        setIsProcessing(false)
-        toast({
-          title: "Đặt hàng thành công!",
-          description: "Drone sẽ giao hàng trong 15-20 phút",
-        })
-        navigate("/orders") // Chuyển đến trang đơn hàng thay vì tracking
-      } catch (error) {
-        setIsProcessing(false)
-        toast({
-          title: "Lỗi",
-          description: "Không thể đặt hàng. Vui lòng thử lại",
-          variant: "destructive"
-        })
+    try {
+      // Map payment method từ UI sang backend
+      const paymentMethodMap = {
+        'wallet': 'VNPAY',
+        'card': 'VNPAY', 
+        'cod': 'COD'
       }
-    }, 2000)
+
+      const mappedPaymentMethod = paymentMethodMap[paymentMethod] || 'COD'
+
+      // Gọi API tạo đơn hàng
+      const orderData = {
+        restaurant_id: firstItem.restaurant_id,
+        delivery_address: deliveryInfo.address,
+        delivery_phone: deliveryInfo.phone,
+        delivery_name: deliveryInfo.fullName,
+        note: deliveryInfo.note,
+        payment_method: mappedPaymentMethod
+      }
+
+      const result = await orderAPI.createOrder(orderData)
+      
+      // Nếu thanh toán VNPay, chuyển đến trang thanh toán
+      if (result.payment_url) {
+        window.location.href = result.payment_url
+        return
+      }
+
+      // Nếu thanh toán COD, hiển thị thông báo và chuyển đến trang orders
+      setIsProcessing(false)
+      toast({
+        title: "Đặt hàng thành công!",
+        description: "Đơn hàng của bạn đã được tạo",
+      })
+      navigate("/orders")
+      
+    } catch (error) {
+      setIsProcessing(false)
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể đặt hàng. Vui lòng thử lại",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
@@ -188,21 +232,7 @@ export default function CheckoutPage() {
                         <Wallet className="h-5 w-5 text-muted-foreground" />
                         <div>
                           <div className="font-medium">Ví điện tử</div>
-                          <div className="text-sm text-muted-foreground">MoMo, ZaloPay, VNPay</div>
-                        </div>
-                      </Label>
-                    </div>
-
-                    <div className="mb-3 flex items-center space-x-3 rounded-lg border border-border p-4">
-                      <RadioGroupItem value="card" id="card" />
-                      <Label
-                        htmlFor="card"
-                        className="flex flex-1 cursor-pointer items-center gap-3"
-                      >
-                        <CreditCard className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">Thẻ tín dụng/ghi nợ</div>
-                          <div className="text-sm text-muted-foreground">Visa, Mastercard</div>
+                          <div className="text-sm text-muted-foreground"> VNPay</div>
                         </div>
                       </Label>
                     </div>

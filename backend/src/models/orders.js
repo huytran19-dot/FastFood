@@ -36,6 +36,23 @@ class orders extends Sequelize.Model {
       type: DataTypes.STRING(255),
       allowNull: false
     },
+    delivery_phone: {
+      type: DataTypes.STRING(20),
+      allowNull: true
+    },
+    delivery_name: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    note: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    delivery_fee: {
+      type: DataTypes.DECIMAL(10,2),
+      allowNull: true,
+      defaultValue: 15000
+    },
     status: {
       type: DataTypes.ENUM('PENDING','CONFIRMED','PREPARING','DELIVERING','COMPLETED','CANCELLED'),
       allowNull: false,
