@@ -20,7 +20,6 @@ export default function RestaurantRegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    city: '',
     phone: user?.phone || '',
     description: '',
     image_url: '',
@@ -55,7 +54,6 @@ export default function RestaurantRegisterPage() {
       const submitData = {
         name: formData.name,
         address: formData.address,
-        city: formData.city,
         phone: formData.phone,
         description: formData.description,
         image_url: formData.image_url,
@@ -150,19 +148,6 @@ export default function RestaurantRegisterPage() {
                 <p className="mt-2 text-xs text-muted-foreground">
                   💡 Nhập địa chỉ hoặc nhấp vào bản đồ để chọn vị trí. Địa chỉ sẽ tự động cập nhật khi kéo marker.
                 </p>
-              </div>
-
-              {/* City */}
-              <div>
-                <Label htmlFor="city">Thành phố</Label>
-                <Input 
-                  id="city" 
-                  placeholder="TP. Hồ Chí Minh" 
-                  value={formData.city}
-                  onChange={handleChange}
-                  required 
-                  className="mt-2"
-                />
               </div>
 
               {/* Phone */}
