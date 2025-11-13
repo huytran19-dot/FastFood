@@ -1,33 +1,37 @@
 const cartService = require('../services/cartServices');
 
+// Helper function để format cart response
+function formatCartResponse(cart) {
+  const total = cart.cart_items.reduce((sum, item) => {
+    return sum + (parseFloat(item.item?.price || 0) * item.quantity);
+  }, 0);
+
+  return {
+    id: cart.id,
+    items: cart.cart_items.map(item => ({
+      id: item.id,
+      menu_item_id: item.item_id,
+      name: item.item?.name || '',
+      description: item.item?.description || '',
+      price: parseFloat(item.item?.price || 0),
+      image: item.item?.image_url || '',
+      quantity: item.quantity,
+      subtotal: parseFloat(item.item?.price || 0) * item.quantity,
+      restaurant_id: item.item?.restaurant_id
+    })),
+    total,
+    itemCount: cart.cart_items.reduce((sum, item) => sum + item.quantity, 0)
+  };
+}
+
 class CartController {
   // GET /api/cart - Lấy giỏ hàng hiện tại
   async getCart(req, res) {
     try {
       const cart = await cartService.getOrCreateCart(req.user.id);
-      
-      // Tính tổng tiền
-      const total = cart.cart_items.reduce((sum, item) => {
-        return sum + (parseFloat(item.item?.price || 0) * item.quantity);
-      }, 0);
-
       res.json({
         success: true,
-        data: {
-          id: cart.id,
-          items: cart.cart_items.map(item => ({
-            id: item.id,
-            menu_item_id: item.item_id,
-            name: item.item?.name || '',
-            description: item.item?.description || '',
-            price: parseFloat(item.item?.price || 0),
-            image: item.item?.image_url || '',
-            quantity: item.quantity,
-            subtotal: parseFloat(item.item?.price || 0) * item.quantity
-          })),
-          total,
-          itemCount: cart.cart_items.reduce((sum, item) => sum + item.quantity, 0)
-        }
+        data: formatCartResponse(cart)
       });
     } catch (error) {
       console.error('Get cart error:', error);
@@ -53,28 +57,10 @@ class CartController {
 
       const cart = await cartService.addToCart(req.user.id, menu_item_id, quantity);
       
-      const total = cart.cart_items.reduce((sum, item) => {
-        return sum + (parseFloat(item.item?.price || 0) * item.quantity);
-      }, 0);
-
       res.json({
         success: true,
         message: 'Đã thêm vào giỏ hàng',
-        data: {
-          id: cart.id,
-          items: cart.cart_items.map(item => ({
-            id: item.id,
-            menu_item_id: item.item_id,
-            name: item.item?.name || '',
-            description: item.item?.description || '',
-            price: parseFloat(item.item?.price || 0),
-            image: item.item?.image_url || '',
-            quantity: item.quantity,
-            subtotal: parseFloat(item.item?.price || 0) * item.quantity
-          })),
-          total,
-          itemCount: cart.cart_items.reduce((sum, item) => sum + item.quantity, 0)
-        }
+        data: formatCartResponse(cart)
       });
     } catch (error) {
       console.error('Add to cart error:', error);
@@ -101,28 +87,10 @@ class CartController {
 
       const cart = await cartService.updateQuantity(req.user.id, id, quantity);
       
-      const total = cart.cart_items.reduce((sum, item) => {
-        return sum + (parseFloat(item.item?.price || 0) * item.quantity);
-      }, 0);
-
       res.json({
         success: true,
         message: quantity === 0 ? 'Đã xóa khỏi giỏ hàng' : 'Đã cập nhật số lượng',
-        data: {
-          id: cart.id,
-          items: cart.cart_items.map(item => ({
-            id: item.id,
-            menu_item_id: item.item_id,
-            name: item.item?.name || '',
-            description: item.item?.description || '',
-            price: parseFloat(item.item?.price || 0),
-            image: item.item?.image_url || '',
-            quantity: item.quantity,
-            subtotal: parseFloat(item.item?.price || 0) * item.quantity
-          })),
-          total,
-          itemCount: cart.cart_items.reduce((sum, item) => sum + item.quantity, 0)
-        }
+        data: formatCartResponse(cart)
       });
     } catch (error) {
       console.error('Update quantity error:', error);
@@ -140,28 +108,10 @@ class CartController {
       const { id } = req.params;
       const cart = await cartService.removeItem(req.user.id, id);
       
-      const total = cart.cart_items.reduce((sum, item) => {
-        return sum + (parseFloat(item.item?.price || 0) * item.quantity);
-      }, 0);
-
       res.json({
         success: true,
         message: 'Đã xóa khỏi giỏ hàng',
-        data: {
-          id: cart.id,
-          items: cart.cart_items.map(item => ({
-            id: item.id,
-            menu_item_id: item.item_id,
-            name: item.item?.name || '',
-            description: item.item?.description || '',
-            price: parseFloat(item.item?.price || 0),
-            image: item.item?.image_url || '',
-            quantity: item.quantity,
-            subtotal: parseFloat(item.item?.price || 0) * item.quantity
-          })),
-          total,
-          itemCount: cart.cart_items.reduce((sum, item) => sum + item.quantity, 0)
-        }
+        data: formatCartResponse(cart)
       });
     } catch (error) {
       console.error('Remove item error:', error);

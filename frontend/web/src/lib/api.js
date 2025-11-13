@@ -447,3 +447,103 @@ export const cartAPI = {
     }
   },
 };
+
+// ===== ORDER API (cần auth) =====
+export const orderAPI = {
+  // Tạo đơn hàng mới
+  async createOrder(orderData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi tạo đơn hàng');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error creating order:', error);
+      throw error;
+    }
+  },
+
+  // Lấy danh sách đơn hàng
+  async getOrders(limit = 20, offset = 0) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders?limit=${limit}&offset=${offset}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi lấy danh sách đơn hàng');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error fetching orders:', error);
+      throw error;
+    }
+  },
+
+  // Lấy chi tiết đơn hàng
+  async getOrderDetail(orderId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi lấy chi tiết đơn hàng');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error fetching order detail:', error);
+      throw error;
+    }
+  },
+
+  // Hủy đơn hàng
+  async cancelOrder(orderId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders/${orderId}/cancel`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi hủy đơn hàng');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error cancelling order:', error);
+      throw error;
+    }
+  },
+};
