@@ -10,11 +10,13 @@ import { Link } from "react-router-dom"
 import { useParams } from "react-router-dom"
 import { publicAPI } from "@/lib/api"
 import { useCart } from "@/contexts/CartContext"
+import RestaurantMapView from "@/components/map/RestaurantMapView"
 
 export default function RestaurantPage() {
   const { id } = useParams()
   const [restaurant, setRestaurant] = useState(null)
   const [menuItems, setMenuItems] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
   const { toast } = useToast()
@@ -29,28 +31,39 @@ export default function RestaurantPage() {
   const fetchRestaurantData = async () => {
     try {
       setLoading(true)
-      const data = await publicAPI.getRestaurantMenu(id)
+      
+      // Fetch menu and categories in parallel
+      const [menuData, categoriesData] = await Promise.all([
+        publicAPI.getRestaurantMenu(id),
+        publicAPI.getRestaurantCategories(id).catch(() => []) // Fallback to empty array if fails
+      ])
       
       // Set restaurant info
       setRestaurant({
-        id: data.restaurant.id,
-        name: data.restaurant.name,
-        image: data.restaurant.image_url || "/delicious-burger-restaurant.jpg",
-        rating: data.restaurant.rating || 4.5,
-        address: data.restaurant.address,
-        phone: data.restaurant.phone,
+        id: menuData.restaurant.id,
+        name: menuData.restaurant.name,
+        image: menuData.restaurant.image_url || "/delicious-burger-restaurant.jpg",
+        rating: menuData.restaurant.rating || 4.5,
+        address: menuData.restaurant.address,
+        phone: menuData.restaurant.phone,
+        lat: menuData.restaurant.lat,
+        lng: menuData.restaurant.lng,
         openTime: "08:00 - 22:00", // Có thể thêm vào database sau
         isOpen: true,
       })
 
-      // Transform menu items
-      const transformedMenu = data.menuItems.map(item => ({
+      // Set categories
+      setCategories(categoriesData || [])
+
+      // Transform menu items with category info
+      const transformedMenu = menuData.menuItems.map(item => ({
         id: item.id,
         name: item.name,
         description: item.description,
         price: parseFloat(item.price),
         image: item.image_url || "/placeholder.svg",
-        category: item.category_id ? `category-${item.category_id}` : "other",
+        category: item.category ? item.category : null,
+        category_id: item.category_id,
       }))
       
       setMenuItems(transformedMenu)
@@ -71,7 +84,11 @@ export default function RestaurantPage() {
     await addToCart(item.id, 1)
   }
 
-  const filteredItems = activeTab === "all" ? menuItems : menuItems.filter((item) => item.category === activeTab)
+  const filteredItems = activeTab === "all" 
+    ? menuItems 
+    : activeTab === "uncategorized"
+    ? menuItems.filter((item) => !item.category_id)
+    : menuItems.filter((item) => item.category_id === parseInt(activeTab))
 
   if (loading) {
     return (
@@ -143,13 +160,41 @@ export default function RestaurantPage() {
           </div>
         </div>
 
+        {/* Restaurant Location Map */}
+        {restaurant.lat && restaurant.lng && (
+          <div className="mb-6">
+            <RestaurantMapView 
+              lat={restaurant.lat}
+              lng={restaurant.lng}
+              restaurantName={restaurant.name}
+              address={restaurant.address}
+              height="300px"
+            />
+          </div>
+        )}
+
         {/* Menu Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="all">Tất cả</TabsTrigger>
-            <TabsTrigger value="combo">Combo</TabsTrigger>
-            <TabsTrigger value="drinks">Đồ uống</TabsTrigger>
-            <TabsTrigger value="desserts">Tráng miệng</TabsTrigger>
+            <TabsTrigger value="all">
+              Tất cả ({menuItems.length})
+            </TabsTrigger>
+            {menuItems.filter(item => !item.category_id).length > 0 && (
+              <TabsTrigger value="uncategorized">
+                Chưa phân loại ({menuItems.filter(item => !item.category_id).length})
+              </TabsTrigger>
+            )}
+            {categories
+              .filter(cat => cat.status === 1) // Only show active categories
+              .map((category) => {
+                const itemCount = menuItems.filter(item => item.category_id === category.id).length
+                if (itemCount === 0) return null
+                return (
+                  <TabsTrigger key={category.id} value={category.id.toString()}>
+                    {category.name} ({itemCount})
+                  </TabsTrigger>
+                )
+              })}
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-6">
