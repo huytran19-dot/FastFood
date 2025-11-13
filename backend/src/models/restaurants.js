@@ -86,6 +86,16 @@ class restaurants extends Sequelize.Model {
     approved_at: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    lat: {
+      type: DataTypes.DECIMAL(9, 6),
+      allowNull: true,
+      comment: 'Vĩ độ (latitude) của nhà hàng'
+    },
+    lng: {
+      type: DataTypes.DECIMAL(9, 6),
+      allowNull: true,
+      comment: 'Kinh độ (longitude) của nhà hàng'
     }
   }, {
     sequelize,
@@ -145,6 +155,14 @@ class restaurants extends Sequelize.Model {
         using: "BTREE",
         fields: [
           { name: "city" },
+        ]
+      },
+      {
+        name: "idx_coordinates",
+        using: "BTREE",
+        fields: [
+          { name: "lat" },
+          { name: "lng" },
         ]
       },
     ]

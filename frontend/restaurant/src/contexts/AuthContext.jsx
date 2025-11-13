@@ -19,25 +19,42 @@ export function AuthProvider({ children }) {
   const loadUser = async () => {
     try {
       if (authAPI.isAuthenticated()) {
-          const storedUser = localStorage.getItem('user');
-        const storedRestaurant = localStorage.getItem('restaurant');
+        const storedUser = localStorage.getItem('user');
         
         if (storedUser) {
           setUser(JSON.parse(storedUser));
         }
         
-        if (storedRestaurant) {
-          setRestaurant(JSON.parse(storedRestaurant));
-        }
-        
+        // ALWAYS fetch restaurant from API, don't trust localStorage
         try {
           const restaurantData = await restaurantAPI.getMine();
           if (restaurantData) {
             setRestaurant(restaurantData);
             localStorage.setItem('restaurant', JSON.stringify(restaurantData));
+          } else {
+            // No restaurant found - clear localStorage
+            setRestaurant(null);
+            localStorage.removeItem('restaurant');
           }
         } catch (err) {
-          console.warn('Failed to refresh restaurant data, using cached:', err.message);
+          // Check if it's 401 (token expired) or 404 (no restaurant)
+          if (err.status === 401) {
+            // Token expired - force logout
+            console.error('Token expired, logging out');
+            await authAPI.logout();
+            setUser(null);
+            setRestaurant(null);
+          } else if (err.status === 404) {
+            // User just doesn't have restaurant yet
+            console.log('User has no restaurant yet');
+            setRestaurant(null);
+            localStorage.removeItem('restaurant');
+          } else {
+            // Other error - log but don't logout
+            console.warn('Restaurant fetch error:', err.message);
+            setRestaurant(null);
+            localStorage.removeItem('restaurant');
+          }
         }
       }
     } catch (error) {
@@ -54,23 +71,52 @@ export function AuthProvider({ children }) {
     try {
       const data = await authAPI.login(credentials);
       
-      const isPending = data.restaurant?.review_status === 'PENDING';
+      // Always set user
+      setUser(data.user);
       
-      if (!isPending) {
-        setUser(data.user);
+      // Handle restaurant based on status
+      if (data.restaurant) {
+        const { review_status } = data.restaurant;
         
-        if (data.restaurant) {
+        if (review_status === 'APPROVED') {
+          // Only set restaurant in context if APPROVED
           setRestaurant(data.restaurant);
           localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
+          
+          toast({
+            title: 'Đăng nhập thành công',
+            description: `Xin chào, ${data.user.name}!`,
+          });
+        } else if (review_status === 'PENDING') {
+          // Don't set restaurant in context for PENDING
+          setRestaurant(null);
+          localStorage.removeItem('restaurant');
+          
+          toast({
+            title: 'Nhà hàng đang chờ duyệt',
+            description: 'Nhà hàng của bạn đang được xem xét',
+          });
+        } else if (review_status === 'REJECTED') {
+          // Don't set restaurant in context for REJECTED
+          setRestaurant(null);
+          localStorage.removeItem('restaurant');
+          
+          toast({
+            variant: 'destructive',
+            title: 'Nhà hàng bị từ chối',
+            description: 'Vui lòng kiểm tra lý do và đăng ký lại',
+          });
         }
+      } else {
+        // No restaurant at all - need to register
+        setRestaurant(null);
+        localStorage.removeItem('restaurant');
+        
+        toast({
+          title: 'Đăng nhập thành công',
+          description: 'Vui lòng đăng ký thông tin nhà hàng',
+        });
       }
-      
-      toast({
-        title: isPending ? 'Tài khoản đang chờ duyệt' : 'Đăng nhập thành công',
-        description: isPending 
-          ? 'Nhà hàng của bạn đang được xem xét' 
-          : `Xin chào, ${data.user.name}!`,
-      });
       
       return data;
     } catch (error) {
@@ -130,6 +176,30 @@ export function AuthProvider({ children }) {
 
   const updateRestaurant = (restaurantData) => {
     setRestaurant(restaurantData);
+    if (restaurantData) {
+      localStorage.setItem('restaurant', JSON.stringify(restaurantData));
+    } else {
+      localStorage.removeItem('restaurant');
+    }
+  };
+
+  const refreshRestaurant = async () => {
+    try {
+      const restaurantData = await restaurantAPI.getMine();
+      if (restaurantData) {
+        setRestaurant(restaurantData);
+        localStorage.setItem('restaurant', JSON.stringify(restaurantData));
+      } else {
+        setRestaurant(null);
+        localStorage.removeItem('restaurant');
+      }
+      return restaurantData;
+    } catch (error) {
+      console.error('Failed to refresh restaurant:', error);
+      setRestaurant(null);
+      localStorage.removeItem('restaurant');
+      return null;
+    }
   };
 
   const value = {
@@ -140,6 +210,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     updateRestaurant,
+    refreshRestaurant,
     isAuthenticated: !!user,
   };
 
