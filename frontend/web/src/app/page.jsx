@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react"
 import { useState, useEffect } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { RestaurantCard } from "@/components/restaurant-card"
@@ -6,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plane, Zap, Shield, Clock, Loader2 } from "lucide-react"
 import { publicAPI } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { useCart } from "@/contexts/CartContext"
 
 const features = [
@@ -28,8 +30,15 @@ const features = [
 
 export default function HomePage() {
   const [restaurants, setRestaurants] = useState([])
+  const [filteredRestaurants, setFilteredRestaurants] = useState([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  
+  // Refs for scrolling
+  const restaurantsRef = useRef(null)
+  const featuresRef = useRef(null)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { refreshCart } = useCart()
@@ -39,6 +48,21 @@ export default function HomePage() {
     checkPaymentStatus()
   }, [])
 
+  useEffect(() => {
+    const searchQuery = searchParams.get('search')
+    if (searchQuery && restaurants.length > 0) {
+      const query = searchQuery.toLowerCase()
+      const filtered = restaurants.filter(r => 
+        r.name.toLowerCase().includes(query) || 
+        r.address.toLowerCase().includes(query)
+      )
+      setFilteredRestaurants(filtered)
+      // Auto scroll to restaurants section when searching
+      scrollToRestaurants()
+    } else {
+      setFilteredRestaurants(restaurants)
+    }
+  }, [searchParams, restaurants])
   const checkPaymentStatus = async () => {
     const paymentStatus = searchParams.get('payment')
     const orderId = searchParams.get('orderId')
@@ -100,6 +124,20 @@ export default function HomePage() {
       setLoading(false)
     }
   }
+
+  const scrollToRestaurants = () => {
+    restaurantsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const scrollToFeatures = () => {
+    featuresRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const handleViewAll = () => {
+    // Có thể navigate đến trang restaurants list riêng hoặc scroll xuống
+    scrollToRestaurants()
+  }
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -117,10 +155,19 @@ export default function HomePage() {
               Trải nghiệm giao đồ ăn nhanh chóng và hiện đại nhất Việt Nam. Drone bay thẳng đến tận nơi trong vài phút!
             </p>
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-center sm:items-center">
-              <Button size="lg" className="rounded-full bg-black text-white h-11 px-6 hover:bg-black/90">
+              <Button 
+                size="lg" 
+                className="rounded-full bg-black text-white h-11 px-6 hover:bg-black/90"
+                onClick={scrollToRestaurants}
+              >
                 Xem nhà hàng
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full h-11 px-6 border-border">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="rounded-full h-11 px-6 border-border"
+                onClick={scrollToFeatures}
+              >
                 Tìm hiểu thêm
               </Button>
             </div>
@@ -129,7 +176,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="border-y border-border bg-card py-12">
+      <section ref={featuresRef} className="border-y border-border bg-card py-12">
         <div className="container mx-auto max-w-7xl px-4">
           <div className="grid gap-8 md:grid-cols-3">
             {features.map((feature, index) => {
@@ -149,7 +196,7 @@ export default function HomePage() {
       </section>
 
       {/* Restaurants Section */}
-      <section className="py-12 bg-background">
+      <section ref={restaurantsRef} className="py-12 bg-background">
         <div className="container mx-auto max-w-7xl px-4">
           <div className="mb-8 flex items-center justify-between">
             <div>
@@ -158,7 +205,9 @@ export default function HomePage() {
                 Khám phá các nhà hàng hỗ trợ giao hàng drone
               </p>
             </div>
-            <Button variant="outline">Xem tất cả</Button>
+            <Button variant="outline" onClick={handleViewAll}>
+              Xem tất cả
+            </Button>
           </div>
 
           {loading ? (
@@ -168,13 +217,27 @@ export default function HomePage() {
                 <p className="text-muted-foreground">Đang tải danh sách nhà hàng...</p>
               </div>
             </div>
-          ) : restaurants.length === 0 ? (
+          ) : filteredRestaurants.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Chưa có nhà hàng nào</p>
+              <p className="text-muted-foreground">
+                {searchParams.get('search') 
+                  ? `Không tìm thấy nhà hàng nào với từ khóa "${searchParams.get('search')}"`
+                  : "Chưa có nhà hàng nào"
+                }
+              </p>
+              {searchParams.get('search') && (
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => navigate('/')}
+                >
+                  Xem tất cả nhà hàng
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {restaurants.map((restaurant) => (
+              {filteredRestaurants.map((restaurant) => (
                 <RestaurantCard key={restaurant.id} {...restaurant} />
               ))}
             </div>

@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom"
 import { Link } from "react-router-dom"
 import { useCart } from "@/contexts/CartContext"
 import { useAuth } from "@/contexts/AuthContext"
+import AddressMapPicker from "@/components/map/AddressMapPicker"
+import AddressAutocomplete from "@/components/ui/address-autocomplete"
 import { orderAPI } from "@/lib/api"
 
 export default function CheckoutPage() {
@@ -20,7 +22,9 @@ export default function CheckoutPage() {
     fullName: "",
     phone: "",
     address: "",
-    note: ""
+    note: "",
+    lat: null,
+    lng: null
   })
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -195,13 +199,41 @@ export default function CheckoutPage() {
                     </div>
                     <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="address">Địa chỉ chi tiết</Label>
-                      <Textarea
-                        id="address"
-                        placeholder="Số nhà, tên đường, phường/xã, quận/huyện"
+                      <AddressAutocomplete
                         value={deliveryInfo.address}
                         onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})}
-                        required
+                        onSelectAddress={(address, lat, lng) => {
+                          setDeliveryInfo(prev => ({
+                            ...prev,
+                            address,
+                            lat,
+                            lng
+                          }))
+                        }}
+                        placeholder="VD: 123 Lê Lợi, Quận 1, TP.HCM"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        💡 Nhập ít nhất 3 ký tự để xem gợi ý địa chỉ
+                      </p>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Chọn vị trí trên bản đồ</Label>
+                      <AddressMapPicker 
+                        lat={deliveryInfo.lat}
+                        lng={deliveryInfo.lng}
+                        onLocationSelect={(lat, lng, address) => {
+                          setDeliveryInfo(prev => ({
+                            ...prev,
+                            lat,
+                            lng,
+                            address: address || prev.address
+                          }))
+                        }}
+                        height="250px"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        💡 Chọn chính xác vị trí để drone giao hàng đúng địa điểm
+                      </p>
                     </div>
                     <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="note">Ghi chú đơn hàng</Label>

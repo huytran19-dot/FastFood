@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plane } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,7 +14,14 @@ export default function LoginPage() {
     password: ''
   })
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, isAuthenticated, loading } = useAuth()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate("/")
+    }
+  }, [isAuthenticated, loading, navigate])
 
   const handleChange = (e) => {
     setFormData(prev => ({
@@ -93,13 +100,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Demo credentials hint */}
-            <div className="mt-4 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-              <p className="font-medium">Tài khoản demo:</p>
-              <p>Email: demo@example.com</p>
-              <p>Mật khẩu: password123</p>
-            </div>
-
+          
             <div className="mt-6 text-center text-sm text-muted-foreground">
               Chưa có tài khoản?{" "}
               <Link to="/register" className="font-medium text-primary hover:underline">

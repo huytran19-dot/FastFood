@@ -61,7 +61,7 @@ exports.createMenuItem = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
     }
 
-    const { name, description, price, image_url, is_available } = req.body;
+    const { name, description, price, image_url, is_available, category_id } = req.body;
 
     // Validation
     if (!name || !price) {
@@ -73,7 +73,8 @@ exports.createMenuItem = async (req, res) => {
       description,
       price,
       image_url,
-      is_available
+      is_available,
+      category_id
     });
 
     res.status(201).json(menuItem);
@@ -94,14 +95,15 @@ exports.updateMenuItem = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
     }
 
-    const { name, description, price, image_url, is_available } = req.body;
+    const { name, description, price, image_url, is_available, category_id } = req.body;
 
     const menuItem = await menuServices.updateMenuItem(req.params.id, restaurant.id, {
       name,
       description,
       price,
       image_url,
-      is_available
+      is_available,
+      category_id
     });
 
     res.json(menuItem);

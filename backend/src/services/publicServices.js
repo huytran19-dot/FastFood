@@ -1,5 +1,5 @@
 const db = require('../models');
-const { restaurants, menu_items } = db;
+const { restaurants, menu_items, categories } = db;
 
 class PublicService {
   // Lấy danh sách nhà hàng đã được approved
@@ -9,7 +9,7 @@ class PublicService {
         where: {
           review_status: 'APPROVED'
         },
-        attributes: ['id', 'name', 'address', 'phone', 'image_url', 'rating', 'created_at'],
+        attributes: ['id', 'name', 'address', 'phone', 'image_url', 'rating', 'lat', 'lng', 'created_at'],
         order: [['rating', 'DESC'], ['created_at', 'DESC']]
       });
 
@@ -27,7 +27,7 @@ class PublicService {
           id: restaurantId,
           review_status: 'APPROVED'
         },
-        attributes: ['id', 'name', 'address', 'phone', 'image_url', 'rating', 'description', 'created_at']
+        attributes: ['id', 'name', 'address', 'phone', 'image_url', 'rating', 'description', 'lat', 'lng', 'created_at']
       });
 
       if (!restaurant) {
@@ -55,13 +55,21 @@ class PublicService {
         throw new Error('Restaurant not found or not approved');
       }
 
-      // Lấy menu items
+      // Lấy menu items với category info
       const menuItems = await menu_items.findAll({
         where: {
           restaurant_id: restaurantId,
           is_available: true // Chỉ lấy món đang available
         },
         attributes: ['id', 'name', 'description', 'price', 'image_url', 'category_id', 'created_at'],
+        include: [
+          {
+            model: categories,
+            as: 'category',
+            attributes: ['id', 'name', 'status'],
+            required: false
+          }
+        ],
         order: [['created_at', 'DESC']]
       });
 
@@ -72,10 +80,56 @@ class PublicService {
           address: restaurant.address,
           phone: restaurant.phone,
           image_url: restaurant.image_url,
-          rating: restaurant.rating
+          rating: restaurant.rating,
+          lat: restaurant.lat,
+          lng: restaurant.lng
         },
         menuItems
       };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Lấy categories của nhà hàng
+  async getRestaurantCategories(restaurantId) {
+    try {
+      // Kiểm tra nhà hàng có tồn tại và approved không
+      const restaurant = await restaurants.findOne({
+        where: {
+          id: restaurantId,
+          review_status: 'APPROVED'
+        }
+      });
+
+      if (!restaurant) {
+        throw new Error('Restaurant not found or not approved');
+      }
+
+      // Lấy categories với số lượng menu items
+      const restaurantCategories = await categories.findAll({
+        where: {
+          restaurant_id: restaurantId
+        },
+        attributes: [
+          'id',
+          'name',
+          'status',
+          'created_at',
+          [
+            db.Sequelize.literal(`(
+              SELECT COUNT(*)
+              FROM menu_items
+              WHERE menu_items.category_id = categories.id
+              AND menu_items.is_available = true
+            )`),
+            'menu_items_count'
+          ]
+        ],
+        order: [['created_at', 'ASC']]
+      });
+
+      return restaurantCategories;
     } catch (error) {
       throw error;
     }

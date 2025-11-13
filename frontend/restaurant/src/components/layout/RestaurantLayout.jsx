@@ -41,6 +41,11 @@ export default function RestaurantLayout({ children }) {
       name: 'Quản Lý Menu',
       href: '/restaurant/menu',
       icon: Package
+    },
+    {
+      name: 'Quản Lý Danh Mục',
+      href: '/restaurant/categories',
+      icon: Package
     }
     // Deliveries menu item temporarily disabled - feature under development
     // {

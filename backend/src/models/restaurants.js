@@ -32,10 +32,6 @@ class restaurants extends Sequelize.Model {
       type: DataTypes.STRING(255),
       allowNull: true
     },
-    city: {
-      type: DataTypes.STRING(100),
-      allowNull: true
-    },
     description: {
       type: DataTypes.TEXT,
       allowNull: true
@@ -151,10 +147,11 @@ class restaurants extends Sequelize.Model {
         ]
       },
       {
-        name: "idx_restaurants_city",
+        name: "idx_coordinates",
         using: "BTREE",
         fields: [
-          { name: "city" },
+          { name: "lat" },
+          { name: "lng" },
         ]
       },
       {

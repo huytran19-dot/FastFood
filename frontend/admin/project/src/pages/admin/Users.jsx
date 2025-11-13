@@ -35,7 +35,10 @@ export function AdminUsers() {
   }, []);
 
   const handleToggleStatus = async (userId, currentStatus) => {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    // Convert status to integer: 1 (active) or 0 (inactive)
+    // currentStatus from DB is 0 or 1
+    const newStatus = currentStatus === 1 || currentStatus === '1' || currentStatus === 'active' ? 0 : 1;
+    
     try {
       await toggleUserStatus(userId, newStatus);
       showToast('Cập nhật trạng thái thành công', 'success');
@@ -73,43 +76,50 @@ export function AdminUsers() {
     {
       key: 'status',
       header: 'Trạng thái',
-      render: (user) => (
-        <Badge 
-          status={user.status === 'active' ? 'active' : 'inactive'} 
-          type="user" 
-        />
-      )
+      render: (user) => {
+        // user.status from DB is 0 or 1 (TINYINT)
+        const isActive = user.status === 1 || user.status === '1' || user.status === 'active';
+        return (
+          <Badge 
+            status={isActive ? 'active' : 'inactive'} 
+            type="user" 
+          />
+        );
+      }
     },
     {
       key: 'actions',
       header: 'Thao tác',
-      render: (user) => (
-        <div className="flex gap-1.5">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggleStatus(user.id, user.status);
-            }}
-            className={`text-xs px-2.5 py-1.5 rounded-lg transition-colors font-medium ${
-              user.status === 'active'
-                ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            }`}
-          >
-            {user.status === 'active' ? 'Khóa' : 'Mở'}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setConfirmDialog({ isOpen: true, userId: user.id, action: 'delete' });
-            }}
-            className="text-xs px-2.5 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center gap-1 font-medium"
-          >
-            <Trash2 size={12} />
-            Xóa
-          </button>
-        </div>
-      )
+      render: (user) => {
+        const isActive = user.status === 1 || user.status === '1' || user.status === 'active';
+        return (
+          <div className="flex gap-1.5">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleStatus(user.id, user.status);
+              }}
+              className={`text-xs px-2.5 py-1.5 rounded-lg transition-colors font-medium ${
+                isActive
+                  ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+              }`}
+            >
+              {isActive ? 'Khóa' : 'Mở'}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmDialog({ isOpen: true, userId: user.id, action: 'delete' });
+              }}
+              className="text-xs px-2.5 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center gap-1 font-medium"
+            >
+              <Trash2 size={12} />
+              Xóa
+            </button>
+          </div>
+        );
+      }
     }
   ];
 
