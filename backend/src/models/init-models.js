@@ -1,4 +1,5 @@
 const DataTypes = require("sequelize").DataTypes;
+const _addresses = require("./addresses");
 const _cart_items = require("./cart_items");
 const _carts = require("./carts");
 const _categories = require("./categories");
@@ -14,6 +15,7 @@ const _roles = require("./roles");
 const _users = require("./users");
 
 function initModels(sequelize) {
+  const addresses = _addresses(sequelize, DataTypes);
   const cart_items = _cart_items(sequelize, DataTypes);
   const carts = _carts(sequelize, DataTypes);
   const categories = _categories(sequelize, DataTypes);
@@ -28,10 +30,16 @@ function initModels(sequelize) {
   const roles = _roles(sequelize, DataTypes);
   const users = _users(sequelize, DataTypes);
 
+  // addresses relations
+  addresses.belongsTo(users, { as: "user", foreignKey: "user_id"});
+  users.hasMany(addresses, { as: "addresses", foreignKey: "user_id"});
+  
   cart_items.belongsTo(carts, { as: "cart", foreignKey: "cart_id"});
   carts.hasMany(cart_items, { as: "cart_items", foreignKey: "cart_id"});
   menu_items.belongsTo(categories, { as: "category", foreignKey: "category_id"});
   categories.hasMany(menu_items, { as: "menu_items", foreignKey: "category_id"});
+  categories.belongsTo(restaurants, { as: "restaurant", foreignKey: "restaurant_id"});
+  restaurants.hasMany(categories, { as: "categories", foreignKey: "restaurant_id"});
   deliveries.belongsTo(drones, { as: "drone", foreignKey: "drone_id"});
   drones.hasMany(deliveries, { as: "deliveries", foreignKey: "drone_id"});
   locations.belongsTo(drones, { as: "drone", foreignKey: "drone_id"});
@@ -66,6 +74,7 @@ function initModels(sequelize) {
   users.hasMany(restaurants, { as: "approved_by_restaurants", foreignKey: "approved_by"});
 
   return {
+    addresses,
     cart_items,
     carts,
     categories,
