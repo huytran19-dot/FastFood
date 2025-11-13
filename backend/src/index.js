@@ -14,6 +14,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const menuRoutes = require('./routes/menuRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 const cartRoutes = require('./routes/cartRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -82,6 +83,9 @@ app.use('/api/menu', menuRoutes);
 
 // Cart routes - requires authentication
 app.use('/api/cart', cartRoutes);
+
+// Order routes - requires authentication (except vnpay-return)
+app.use('/api/orders', orderRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

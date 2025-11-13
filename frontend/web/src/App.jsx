@@ -18,6 +18,7 @@ import OrdersPage from '@/app/orders/page'
 import OrderReviewPage from '@/app/orders/[orderId]/review/page'
 import RestaurantDetailPage from '@/app/restaurant/[id]/page'
 import TrackingPage from '@/app/tracking/[orderId]/page'
+import PaymentReturnPage from '@/app/payment-return/page'
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
                 <Route path="/orders/:orderId/review" element={<OrderReviewPage />} />
                 <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
                 <Route path="/tracking/:orderId" element={<TrackingPage />} />
+                <Route path="/payment-return" element={<PaymentReturnPage />} />
               </Routes>
             </main>
           </div>
