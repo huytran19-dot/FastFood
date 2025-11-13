@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { restaurantAPI } from "@/lib/api"
+import LocationPickerWithAddress from "@/components/map/LocationPickerWithAddress"
 
 export default function RestaurantRegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -24,13 +25,24 @@ export default function RestaurantRegisterPage() {
     description: '',
     image_url: '',
     open_time: '07:00',
-    close_time: '22:00'
+    close_time: '22:00',
+    lat: null,
+    lng: null
   })
 
   const handleChange = (e) => {
     setFormData(prev => ({
       ...prev,
       [e.target.id]: e.target.value
+    }))
+  }
+
+  const handleLocationChange = (address, lat, lng) => {
+    setFormData(prev => ({
+      ...prev,
+      address: address,
+      lat: lat,
+      lng: lng
     }))
   }
 
@@ -47,7 +59,9 @@ export default function RestaurantRegisterPage() {
         phone: formData.phone,
         description: formData.description,
         image_url: formData.image_url,
-        operating_hours: `${formData.open_time}-${formData.close_time}`
+        operating_hours: `${formData.open_time}-${formData.close_time}`,
+        lat: formData.lat,
+        lng: formData.lng
       }
 
       const restaurant = await restaurantAPI.register(submitData)
@@ -120,20 +134,22 @@ export default function RestaurantRegisterPage() {
                 />
               </div>
 
-              {/* Address */}
+              {/* Location Picker with Address - Đặt lên đầu để dễ kiểm soát */}
               <div>
-                <Label htmlFor="address" className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 mb-3">
                   <MapPin className="h-4 w-4" />
-                  Địa chỉ
+                  Địa chỉ và vị trí nhà hàng
                 </Label>
-                <Input 
-                  id="address" 
-                  placeholder="123 Lý Thường Kiệt" 
-                  value={formData.address}
-                  onChange={handleChange}
-                  required 
-                  className="mt-2"
+                <LocationPickerWithAddress
+                  onLocationChange={handleLocationChange}
+                  initialAddress={formData.address}
+                  initialLat={formData.lat || 21.0285}
+                  initialLng={formData.lng || 105.8542}
+                  height="450px"
                 />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  💡 Nhập địa chỉ hoặc nhấp vào bản đồ để chọn vị trí. Địa chỉ sẽ tự động cập nhật khi kéo marker.
+                </p>
               </div>
 
               {/* City */}

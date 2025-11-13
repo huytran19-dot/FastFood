@@ -6,6 +6,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Textarea } from '../../components/ui/FormControls';
 import { useToast } from '../../components/ui/Toast';
 import { getRestaurants, getUsers, approveRestaurant, rejectRestaurant } from '../../api/admin';
+import RestaurantMap from '../../components/map/RestaurantMap';
 
 export function AdminRestaurants() {
   const [restaurants, setRestaurants] = useState([]);
@@ -568,6 +569,19 @@ export function AdminRestaurants() {
                 <p className="text-gray-900 mt-2">{selectedRestaurant.description}</p>
               </div>
             )}
+
+            {/* Map Location */}
+            <div className="border-t pt-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Vị trí trên bản đồ</h3>
+              <RestaurantMap
+                lat={selectedRestaurant.lat}
+                lng={selectedRestaurant.lng}
+                name={selectedRestaurant.name}
+                address={selectedRestaurant.address}
+                height="350px"
+                mapId={`restaurant-map-${selectedRestaurant.restaurant_id}`}
+              />
+            </div>
 
             {/* Stats */}
             <div className="border-t pt-4">

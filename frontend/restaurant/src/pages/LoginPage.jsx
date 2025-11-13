@@ -35,20 +35,17 @@ export default function LoginPage() {
         const { review_status } = data.restaurant
         
         if (review_status === 'PENDING') {
-          // Lưu thông tin tạm cho trang pending
-          localStorage.setItem('pendingRestaurant', JSON.stringify(data.restaurant))
-          // Xóa token và restaurant context vì chưa được duyệt
-          localStorage.removeItem('token')
-          localStorage.removeItem('restaurant')
+          // Nhà hàng đang chờ duyệt
           navigate('/pending')
         } else if (review_status === 'REJECTED') {
+          // Nhà hàng bị từ chối
           navigate('/rejected')
         } else if (review_status === 'APPROVED') {
+          // Nhà hàng đã được duyệt
           navigate('/restaurant/dashboard')
-        } else {
-          navigate('/restaurant/register')
         }
       } else {
+        // Chưa có nhà hàng - cần đăng ký
         navigate('/restaurant/register')
       }
     } catch (error) {
