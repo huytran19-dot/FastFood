@@ -20,7 +20,6 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    city: '',
     phone: '',
     description: '',
     image_url: '',
@@ -39,7 +38,6 @@ export default function ProfilePage() {
       setFormData({
         name: restaurant.name || '',
         address: restaurant.address || '',
-        city: restaurant.city || '',
         phone: restaurant.phone || '',
         description: restaurant.description || '',
         image_url: restaurant.image_url || '',
@@ -75,7 +73,6 @@ export default function ProfilePage() {
       const submitData = {
         name: formData.name,
         address: formData.address,
-        city: formData.city,
         phone: formData.phone,
         description: formData.description,
         image_url: formData.image_url,
@@ -223,19 +220,6 @@ export default function ProfilePage() {
                   />
                 </>
               )}
-            </div>
-
-            {/* City */}
-            <div>
-              <Label htmlFor="city">Thành phố</Label>
-              <Input 
-                id="city" 
-                value={formData.city}
-                onChange={handleChange}
-                disabled={!isEditing}
-                required 
-                className="mt-2"
-              />
             </div>
 
             {/* Phone */}

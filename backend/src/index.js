@@ -14,6 +14,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const menuRoutes = require('./routes/menuRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 const cartRoutes = require('./routes/cartRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
@@ -80,6 +81,9 @@ app.use('/api/upload', uploadRoutes);
 
 // Menu routes
 app.use('/api/menu', menuRoutes);
+
+// Category routes (for restaurant owners)
+app.use('/api/restaurant/categories', categoryRoutes);
 
 // Cart routes - requires authentication
 app.use('/api/cart', cartRoutes);

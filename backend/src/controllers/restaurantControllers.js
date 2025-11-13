@@ -3,7 +3,7 @@ const db = require('../models');
 // POST /api/restaurants - Create new restaurant
 exports.createRestaurant = async (req, res) => {
   try {
-    const { name, address, phone, description, image_url, operating_hours, city, lat, lng } = req.body;
+    const { name, address, phone, description, image_url, operating_hours, lat, lng } = req.body;
 
     // Check if owner already has a restaurant
     const existingRestaurant = await db.restaurants.findOne({
@@ -38,7 +38,6 @@ exports.createRestaurant = async (req, res) => {
       owner_id: req.user.id,
       review_status: 'PENDING',
       address,
-      city: city || null,
       phone,
       image_url,
       open_time,
@@ -85,7 +84,7 @@ exports.getMyRestaurant = async (req, res) => {
 // PUT /api/restaurants/mine - Update owner's restaurant
 exports.updateMyRestaurant = async (req, res) => {
   try {
-    const { name, address, phone, description, image_url, operating_hours, city, lat, lng } = req.body;
+    const { name, address, phone, description, image_url, operating_hours, lat, lng } = req.body;
 
     const restaurant = await db.restaurants.findOne({
       where: { owner_id: req.user.id }
@@ -109,7 +108,7 @@ exports.updateMyRestaurant = async (req, res) => {
     }
 
     // Parse operating_hours if provided
-    let updateData = { name, address, phone, description, image_url, city, lat, lng };
+    let updateData = { name, address, phone, description, image_url, lat, lng };
     if (operating_hours) {
       const [open_time, close_time] = operating_hours.split('-').map(t => t.trim());
       updateData.open_time = open_time;

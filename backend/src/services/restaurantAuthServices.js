@@ -27,41 +27,28 @@ const restaurantAuthService = {
       }
 
       // Check if user is restaurant owner
-      if (user.role.name !== 'restaurant') {
+      console.log('👤 User role:', user.role?.name);
+      if (user.role?.name !== 'restaurant') {
         throw new Error('Chỉ chủ nhà hàng mới được đăng nhập vào hệ thống này');
       }
 
-      // Find restaurant owned by this user
-      // Priority: APPROVED > PENDING > REJECTED
+      // Find restaurant owned by this user (check ANY status first)
+      console.log('🔍 Looking for restaurant with owner_id:', user.id);
+      
       let restaurant = await restaurants.findOne({
-        where: { 
-          owner_id: user.id,
-          review_status: 'APPROVED'
-        }
+        where: { owner_id: user.id }
       });
+      
+      console.log('🏪 Found restaurant:', restaurant ? {
+        id: restaurant.id,
+        name: restaurant.name,
+        review_status: restaurant.review_status,
+        status: restaurant.status
+      } : 'null');
 
-      // If no approved restaurant, check for pending
+      // If no restaurant at all, reject login
       if (!restaurant) {
-        restaurant = await restaurants.findOne({
-          where: { 
-            owner_id: user.id,
-            review_status: 'PENDING'
-          }
-        });
-      }
-
-      // If no pending, check for rejected
-      if (!restaurant) {
-        restaurant = await restaurants.findOne({
-          where: { 
-            owner_id: user.id,
-            review_status: 'REJECTED'
-          }
-        });
-      }
-
-      if (!restaurant) {
-        throw new Error('Không tìm thấy nhà hàng của bạn');
+        throw new Error('Vui lòng hoàn tất đăng ký thông tin nhà hàng trước khi đăng nhập');
       }
 
       // Calculate access status based on user.status + restaurant.review_status + restaurant.status
@@ -112,7 +99,6 @@ const restaurantAuthService = {
         restaurant_id: restaurant.id,
         name: restaurant.name,
         address: restaurant.address,
-        city: restaurant.city,
         phone: restaurant.phone,
         description: restaurant.description,
         image_url: restaurant.image_url,

@@ -17,4 +17,7 @@ router.get('/restaurants/:id', publicControllers.getRestaurantById);
 // GET /api/public/restaurants/:id/menu - Lấy menu của nhà hàng
 router.get('/restaurants/:id/menu', publicControllers.getRestaurantMenu);
 
+// GET /api/public/restaurants/:id/categories - Lấy categories của nhà hàng
+router.get('/restaurants/:id/categories', publicControllers.getRestaurantCategories);
+
 module.exports = router;

@@ -145,7 +145,7 @@ export function AdminRestaurants() {
     { 
       key: 'address', 
       header: 'Địa chỉ',
-      render: (r) => `${r.address}, ${r.city}`
+      render: (r) => r.address || '—'
     },
     {
       key: 'created_at',
@@ -220,7 +220,7 @@ export function AdminRestaurants() {
     { 
       key: 'address', 
       header: 'Địa chỉ',
-      render: (r) => `${r.address}, ${r.city}`
+      render: (r) => r.address || '—'
     },
     {
       key: 'rating',
@@ -268,7 +268,7 @@ export function AdminRestaurants() {
     { 
       key: 'address', 
       header: 'Địa chỉ',
-      render: (r) => `${r.address}, ${r.city}`
+      render: (r) => r.address || '—'
     },
     {
       key: 'reject_reason',
@@ -311,7 +311,7 @@ export function AdminRestaurants() {
     { 
       key: 'address', 
       header: 'Địa chỉ',
-      render: (r) => `${r.address}, ${r.city}`
+      render: (r) => r.address || '—'
     },
     {
       key: 'rating',
@@ -535,10 +535,6 @@ export function AdminRestaurants() {
                 <div>
                   <label className="text-sm font-medium text-gray-500">SĐT nhà hàng</label>
                   <p className="text-gray-900 mt-1">{selectedRestaurant.phone || 'N/A'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Thành phố</label>
-                  <p className="text-gray-900 mt-1">{selectedRestaurant.city}</p>
                 </div>
                 <div className="col-span-2">
                   <label className="text-sm font-medium text-gray-500">Địa chỉ</label>
