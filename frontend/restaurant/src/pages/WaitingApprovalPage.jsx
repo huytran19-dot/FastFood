@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Clock, AlertCircle, Phone, Mail, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { restaurantAPI } from '@/lib/api';
 
 export default function WaitingApprovalPage() {
   const navigate = useNavigate();
@@ -9,15 +10,27 @@ export default function WaitingApprovalPage() {
   useEffect(() => {
     document.title = 'Đang chờ duyệt - FastFood Restaurant';
     
-    // Lấy thông tin nhà hàng từ localStorage (đã lưu khi đăng ký hoặc login)
-    const savedRestaurant = localStorage.getItem('pendingRestaurant');
-    if (savedRestaurant) {
-      setPendingRestaurant(JSON.parse(savedRestaurant));
-    }
+    // Lấy thông tin nhà hàng từ API hoặc localStorage
+    const getRestaurantInfo = async () => {
+      try {
+        // Try to fetch from API first
+        const data = await restaurantAPI.getMine();
+        if (data && data.review_status === 'PENDING') {
+          setPendingRestaurant(data);
+          return;
+        }
+      } catch (error) {
+        console.log('Failed to fetch restaurant info, using localStorage:', error.message);
+      }
+      
+      // Fallback to localStorage if API fails
+      const savedRestaurant = localStorage.getItem('pendingRestaurant');
+      if (savedRestaurant) {
+        setPendingRestaurant(JSON.parse(savedRestaurant));
+      }
+    };
     
-    // Đảm bảo xóa token và session vì trang này không yêu cầu đăng nhập
-    localStorage.removeItem('token');
-    localStorage.removeItem('restaurant');
+    getRestaurantInfo();
   }, []);
 
   const handleBackToLogin = () => {
