@@ -83,8 +83,40 @@ const getRestaurantMenu = async (req, res) => {
   }
 };
 
+// Lấy categories của nhà hàng
+const getRestaurantCategories = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🏷️ [Public] Fetching categories for restaurant ${id}...`);
+    
+    const categories = await publicService.getRestaurantCategories(id);
+    
+    console.log(`✅ [Public] Found ${categories.length} categories`);
+    res.status(200).json({
+      success: true,
+      data: categories
+    });
+  } catch (error) {
+    console.error('❌ [Public] Error fetching categories:', error);
+    
+    if (error.message.includes('not found')) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch categories',
+        error: error.message
+      });
+    }
+  }
+};
+
 module.exports = {
   getRestaurants,
   getRestaurantById,
-  getRestaurantMenu
+  getRestaurantMenu,
+  getRestaurantCategories
 };

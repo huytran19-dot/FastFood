@@ -14,28 +14,32 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Modal from '@/components/ui/modal';
-import { menuAPI } from '@/lib/api';
+import { menuAPI, categoryAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MenuPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [menuItems, setMenuItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
-    image_url: ''
+    image_url: '',
+    category_id: ''
   });
 
-  // Load menu items from API
+  // Load menu items and categories from API
   useEffect(() => {
     loadMenuItems();
+    loadCategories();
   }, []);
 
   const loadMenuItems = async () => {
@@ -48,7 +52,8 @@ export default function MenuPage() {
         id: item.id,
         name: item.name,
         description: item.description || '',
-        category: 'Món ăn', // Default category since DB doesn't have category field
+        category_id: item.category_id,
+        category: item.category?.name || 'Chưa phân loại',
         price: parseFloat(item.price),
         image: item.image_url || 'https://placehold.co/400x300/png?text=No+Image',
         status: item.is_available ? 'available' : 'unavailable',
@@ -69,6 +74,15 @@ export default function MenuPage() {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const data = await categoryAPI.getAll();
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+    }
+  };
+
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -79,7 +93,10 @@ export default function MenuPage() {
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    const matchesCategory = selectedCategory === 'all' || 
+                           (selectedCategory === 'uncategorized' && !item.category_id) ||
+                           item.category_id === parseInt(selectedCategory);
+    return matchesSearch && matchesCategory;
   });
 
   const toggleStatus = async (id) => {
@@ -114,7 +131,8 @@ export default function MenuPage() {
         name: item.name,
         description: item.description,
         price: item.price.toString(),
-        image_url: item.image
+        image_url: item.image,
+        category_id: item.category_id || ''
       });
     } else {
       setEditingItem(null);
@@ -122,7 +140,8 @@ export default function MenuPage() {
         name: '',
         description: '',
         price: '',
-        image_url: ''
+        image_url: '',
+        category_id: ''
       });
     }
     setIsModalOpen(true);
@@ -215,6 +234,7 @@ export default function MenuPage() {
         description: formData.description,
         price: parseFloat(formData.price),
         image_url: formData.image_url,
+        category_id: formData.category_id || null,
         is_available: true
       };
 
@@ -349,9 +369,9 @@ export default function MenuPage() {
         </Card>
       </div>
 
-      {/* Search */}
+      {/* Search & Filter */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
@@ -361,6 +381,44 @@ export default function MenuPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
+          </div>
+          
+          {/* Category Filter */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Tag className="h-5 w-5 text-gray-500" />
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedCategory === 'all'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Tất cả ({menuItems.length})
+            </button>
+            <button
+              onClick={() => setSelectedCategory('uncategorized')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedCategory === 'uncategorized'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Chưa phân loại ({menuItems.filter(item => !item.category_id).length})
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id.toString())}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedCategory === cat.id.toString()
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {cat.name} ({menuItems.filter(item => item.category_id === cat.id).length})
+              </button>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -637,6 +695,30 @@ export default function MenuPage() {
               placeholder="Mô tả chi tiết về món ăn..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Danh mục
+            </label>
+            <select
+              value={formData.category_id}
+              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="">Chưa phân loại</option>
+              {categories.filter(cat => cat.status === 1).map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            {categories.length === 0 && (
+              <p className="mt-2 text-sm text-gray-500">
+                Chưa có danh mục nào. <a href="/restaurant/categories" className="text-orange-500 hover:underline">Tạo danh mục</a>
+              </p>
+            )}
           </div>
 
           {/* Price */}

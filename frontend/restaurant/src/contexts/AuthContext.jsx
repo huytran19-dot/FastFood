@@ -20,41 +20,14 @@ export function AuthProvider({ children }) {
     try {
       if (authAPI.isAuthenticated()) {
         const storedUser = localStorage.getItem('user');
+        const storedRestaurant = localStorage.getItem('restaurant');
         
         if (storedUser) {
           setUser(JSON.parse(storedUser));
         }
         
-        // ALWAYS fetch restaurant from API, don't trust localStorage
-        try {
-          const restaurantData = await restaurantAPI.getMine();
-          if (restaurantData) {
-            setRestaurant(restaurantData);
-            localStorage.setItem('restaurant', JSON.stringify(restaurantData));
-          } else {
-            // No restaurant found - clear localStorage
-            setRestaurant(null);
-            localStorage.removeItem('restaurant');
-          }
-        } catch (err) {
-          // Check if it's 401 (token expired) or 404 (no restaurant)
-          if (err.status === 401) {
-            // Token expired - force logout
-            console.error('Token expired, logging out');
-            await authAPI.logout();
-            setUser(null);
-            setRestaurant(null);
-          } else if (err.status === 404) {
-            // User just doesn't have restaurant yet
-            console.log('User has no restaurant yet');
-            setRestaurant(null);
-            localStorage.removeItem('restaurant');
-          } else {
-            // Other error - log but don't logout
-            console.warn('Restaurant fetch error:', err.message);
-            setRestaurant(null);
-            localStorage.removeItem('restaurant');
-          }
+        if (storedRestaurant) {
+          setRestaurant(JSON.parse(storedRestaurant));
         }
       }
     } catch (error) {
@@ -136,10 +109,8 @@ export function AuthProvider({ children }) {
       
       toast({
         title: 'Đăng ký tài khoản thành công',
-        description: 'Vui lòng đăng ký thông tin nhà hàng',
+        description: 'Đăng nhập để tiếp tục',
       });
-      
-      navigate('/restaurant/register');
       
       return data;
     } catch (error) {

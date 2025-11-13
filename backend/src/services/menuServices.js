@@ -20,6 +20,11 @@ exports.getMenuItems = async (restaurantId, filters = {}) => {
 
     const menuItems = await db.menu_items.findAll({
       where,
+      include: [{
+        model: db.categories,
+        as: 'category',
+        attributes: ['id', 'name']
+      }],
       order: [['created_at', 'DESC']]
     });
 
@@ -32,11 +37,16 @@ exports.getMenuItems = async (restaurantId, filters = {}) => {
 // Get single menu item
 exports.getMenuItemById = async (id, restaurantId) => {
   try {
-    const menuItem = await db.menu_items.findOne({
+      const menuItem = await db.menu_items.findOne({
       where: { 
         id,
         restaurant_id: restaurantId 
-      }
+      },
+      include: [{
+        model: db.categories,
+        as: 'category',
+        attributes: ['id', 'name']
+      }]
     });
 
     if (!menuItem) {
@@ -58,7 +68,17 @@ exports.createMenuItem = async (restaurantId, data) => {
       description: data.description,
       price: data.price,
       image_url: data.image_url,
+      category_id: data.category_id || null,
       is_available: data.is_available !== undefined ? data.is_available : true
+    });
+
+    // Reload with category
+    await menuItem.reload({
+      include: [{
+        model: db.categories,
+        as: 'category',
+        attributes: ['id', 'name']
+      }]
     });
 
     return menuItem;
@@ -86,7 +106,17 @@ exports.updateMenuItem = async (id, restaurantId, data) => {
       description: data.description,
       price: data.price,
       image_url: data.image_url,
+      category_id: data.category_id !== undefined ? data.category_id : menuItem.category_id,
       is_available: data.is_available
+    });
+
+    // Reload with category
+    await menuItem.reload({
+      include: [{
+        model: db.categories,
+        as: 'category',
+        attributes: ['id', 'name']
+      }]
     });
 
     return menuItem;

@@ -41,7 +41,19 @@ exports.getAllUsers = async (req, res) => {
 exports.toggleUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    let { status } = req.body;
+
+    // Validate and convert status to integer (0 or 1)
+    // Accept: 0, 1, '0', '1', 'active', 'inactive', true, false
+    if (status === 'active' || status === true || status === 1 || status === '1') {
+      status = 1;
+    } else if (status === 'inactive' || status === false || status === 0 || status === '0') {
+      status = 0;
+    } else {
+      return res.status(400).json({ 
+        message: 'Trạng thái không hợp lệ. Sử dụng: 0, 1, "active", "inactive"' 
+      });
+    }
 
     const user = await db.users.findByPk(id);
     if (!user) {
@@ -51,8 +63,11 @@ exports.toggleUserStatus = async (req, res) => {
     await user.update({ status });
 
     res.json({ 
-      message: 'Cập nhật trạng thái thành công',
-      user 
+      message: `Cập nhật trạng thái thành công: ${status === 1 ? 'Active' : 'Inactive'}`,
+      user: {
+        ...user.toJSON(),
+        statusText: status === 1 ? 'active' : 'inactive'
+      }
     });
   } catch (error) {
     console.error('Toggle user status error:', error);
@@ -114,7 +129,6 @@ exports.getAllRestaurants = async (req, res) => {
           name: restaurant.name,
           phone: restaurant.phone,
           address: restaurant.address,
-          city: restaurant.city,
           review_status: restaurant.review_status,
           status: restaurant.status,
           reject_reason: restaurant.rejection_reason,

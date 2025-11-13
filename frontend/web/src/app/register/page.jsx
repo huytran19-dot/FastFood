@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plane } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,8 +18,15 @@ export default function RegisterPage() {
     confirmPassword: ''
   })
   const navigate = useNavigate()
-  const { register } = useAuth()
+  const { register, isAuthenticated, loading } = useAuth()
   const { toast } = useToast()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate("/")
+    }
+  }, [isAuthenticated, loading, navigate])
 
   const handleChange = (e) => {
     setFormData(prev => ({

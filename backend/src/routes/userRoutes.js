@@ -12,4 +12,7 @@ router.get('/me', userControllers.getCurrentUser);
 // PUT /api/users/me - Update current user profile
 router.put('/me', userControllers.updateProfile);
 
+// PUT /api/users/me/change-password - Change password
+router.put('/me/change-password', userControllers.changePassword);
+
 module.exports = router;

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { User, Mail, Lock, Phone, Store } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const { register } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     setFormData(prev => ({
@@ -44,7 +45,9 @@ export default function RegisterPage() {
     try {
       const { confirmPassword, ...registerData } = formData
       await register(registerData)
-      // Navigation is handled by guards in App.jsx
+      
+      // Redirect to restaurant registration page
+      navigate('/restaurant/register')
     } catch (error) {
       // Error toast is shown by AuthContext
     } finally {

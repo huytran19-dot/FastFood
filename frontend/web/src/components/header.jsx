@@ -20,10 +20,20 @@ export function Header() {
   const { user, isAuthenticated, logout } = useAuth()
   const { cart } = useCart()
   const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
 
   const handleLogout = async () => {
     await logout()
     navigate('/')
+  }
+
+  const handleSearch = (e) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      // Navigate to search results page or filter restaurants
+      // For now, just navigate to home with search query
+      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`)
+    }
   }
 
   return (
@@ -38,12 +48,18 @@ export function Header() {
         </Link>
 
         {/* Search Bar - Desktop */}
-        <div className="hidden flex-1 md:flex max-w-xl">
+        <form onSubmit={handleSearch} className="hidden flex-1 md:flex max-w-xl">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Tìm nhà hàng hoặc món ăn..." className="w-full pl-10 pr-4" />
+            <Input 
+              type="search" 
+              placeholder="Tìm nhà hàng hoặc món ăn..." 
+              className="w-full pl-10 pr-4"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        </div>
+        </form>
 
         {/* Actions */}
         <div className="flex items-center gap-2">

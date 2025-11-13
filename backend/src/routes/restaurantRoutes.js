@@ -4,18 +4,19 @@ const restaurantControllers = require('../controllers/restaurantControllers');
 const authMiddleware = require('../middlewares/auth');
 const roleMiddleware = require('../middlewares/role');
 
-// Public routes
+// Public routes (no auth)
 router.get('/public', restaurantControllers.getPublicRestaurants);
 
-// Protected routes - require authentication and restaurant role
+// Protected routes - require authentication only (no role check for /mine)
+// This allows new restaurant owners to check if they have a restaurant
+router.get('/mine', authMiddleware, restaurantControllers.getMyRestaurant);
+
+// Protected routes - require authentication AND restaurant role
 router.use(authMiddleware);
 router.use(roleMiddleware(['restaurant']));
 
 // POST /api/restaurants - Create new restaurant
 router.post('/', restaurantControllers.createRestaurant);
-
-// GET /api/restaurants/mine - Get owner's restaurant
-router.get('/mine', restaurantControllers.getMyRestaurant);
 
 // PUT /api/restaurants/mine - Update owner's restaurant
 router.put('/mine', restaurantControllers.updateMyRestaurant);

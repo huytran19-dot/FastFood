@@ -30,23 +30,29 @@ export default function LoginPage() {
     try {
       const data = await login(formData)
       
-      // Xử lý routing dựa trên trạng thái nhà hàng
-      if (data.restaurant) {
+      console.log('🔍 Login response:', data)
+      console.log('🏪 Restaurant:', data.restaurant)
+      
+      // Check if user has restaurant
+      if (!data.restaurant) {
+        // No restaurant - redirect to registration
+        console.log('❌ No restaurant found, redirecting to register')
+        navigate('/restaurant/register')
+      } else {
         const { review_status } = data.restaurant
+        console.log('✅ Restaurant found, status:', review_status)
         
         if (review_status === 'PENDING') {
-          // Nhà hàng đang chờ duyệt
           navigate('/pending')
         } else if (review_status === 'REJECTED') {
-          // Nhà hàng bị từ chối
           navigate('/rejected')
         } else if (review_status === 'APPROVED') {
-          // Nhà hàng đã được duyệt
-          navigate('/restaurant/dashboard')
+          navigate('/dashboard')
+        } else {
+          // Default to dashboard if status is unknown
+          console.log('⚠️ Unknown status, going to dashboard')
+          navigate('/dashboard')
         }
-      } else {
-        // Chưa có nhà hàng - cần đăng ký
-        navigate('/restaurant/register')
       }
     } catch (error) {
       // Error toast is shown by AuthContext

@@ -74,6 +74,29 @@ export const publicAPI = {
       throw error;
     }
   },
+
+  // Lấy categories của nhà hàng
+  async getRestaurantCategories(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/restaurants/${id}/categories`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch categories');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('❌ Error fetching categories:', error);
+      throw error;
+    }
+  },
 };
 
 // Mock user database (in a real app, this would be on the server)
@@ -206,6 +229,89 @@ export const authAPI = {
   isAuthenticated() {
     return !!localStorage.getItem('authToken');
   }
+};
+
+// ===== USER API (cần auth) =====
+export const userAPI = {
+  // Lấy thông tin user hiện tại
+  async getCurrentUser() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi lấy thông tin user');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('❌ Error fetching user:', error);
+      throw error;
+    }
+  },
+
+  // Cập nhật profile
+  async updateProfile(profileData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi cập nhật profile');
+      }
+
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(data));
+
+      return data;
+    } catch (error) {
+      console.error('❌ Error updating profile:', error);
+      throw error;
+    }
+  },
+
+  // Đổi mật khẩu
+  async changePassword(currentPassword, newPassword) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/me/change-password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Lỗi khi đổi mật khẩu');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('❌ Error changing password:', error);
+      throw error;
+    }
+  },
 };
 
 // Helper to get auth headers

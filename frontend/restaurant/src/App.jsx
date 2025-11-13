@@ -11,6 +11,7 @@ import WaitingApprovalPage from '@/pages/WaitingApprovalPage'
 import ResubmitPage from '@/pages/ResubmitPage'
 import DashboardPage from '@/pages/DashboardPage'
 import MenuPage from '@/pages/MenuPage'
+import CategoriesPage from '@/pages/CategoriesPage'
 import OrdersPage from '@/pages/OrdersPage'
 import ProfilePage from '@/pages/ProfilePage'
 import RestaurantLayout from '@/components/layout/RestaurantLayout'
@@ -118,6 +119,7 @@ function AppContent() {
         {/* Dashboard Routes (only accessible when APPROVED) - Wrapped with Layout */}
         <Route path="/restaurant/dashboard" element={<ProtectedRoute><RestaurantLayout><DashboardPage /></RestaurantLayout></ProtectedRoute>} />
         <Route path="/restaurant/menu" element={<ProtectedRoute><RestaurantLayout><MenuPage /></RestaurantLayout></ProtectedRoute>} />
+        <Route path="/restaurant/categories" element={<ProtectedRoute><RestaurantLayout><CategoriesPage /></RestaurantLayout></ProtectedRoute>} />
         <Route path="/restaurant/orders" element={<ProtectedRoute><RestaurantLayout><OrdersPage /></RestaurantLayout></ProtectedRoute>} />
         {/* Deliveries route temporarily disabled - feature under development */}
         {/* <Route path="/restaurant/deliveries" element={<ProtectedRoute><RestaurantLayout><DeliveriesPage /></RestaurantLayout></ProtectedRoute>} /> */}

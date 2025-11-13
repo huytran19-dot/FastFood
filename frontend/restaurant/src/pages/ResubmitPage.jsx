@@ -11,7 +11,6 @@ export default function ResubmitPage() {
     name: '',
     phone: '',
     address: '',
-    city: '',
     description: '',
     open_time: '',
     close_time: ''
@@ -25,7 +24,6 @@ export default function ResubmitPage() {
         name: restaurant.name || '',
         phone: restaurant.phone || '',
         address: restaurant.address || '',
-        city: restaurant.city || '',
         description: restaurant.description || '',
         open_time: restaurant.open_time || '',
         close_time: restaurant.close_time || ''
@@ -169,21 +167,6 @@ export default function ResubmitPage() {
             </div>
 
             {/* Thành phố */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Thành phố <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                disabled={!isEditing}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-              />
-            </div>
-
             {/* Mô tả */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
