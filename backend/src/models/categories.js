@@ -12,10 +12,18 @@ class categories extends Sequelize.Model {
       allowNull: false,
       primaryKey: true
     },
+    restaurant_id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      references: {
+        model: 'restaurants',
+        key: 'id'
+      },
+      comment: 'ID của nhà hàng sở hữu category này'
+    },
     name: {
       type: DataTypes.STRING(100),
-      allowNull: false,
-      unique: "uq_categories_name"
+      allowNull: false
     },
     status: {
       type: DataTypes.TINYINT,
@@ -39,11 +47,19 @@ class categories extends Sequelize.Model {
         ]
       },
       {
-        name: "uq_categories_name",
+        name: "uq_categories_restaurant_name",
         unique: true,
         using: "BTREE",
         fields: [
+          { name: "restaurant_id" },
           { name: "name" },
+        ]
+      },
+      {
+        name: "idx_categories_restaurant",
+        using: "BTREE",
+        fields: [
+          { name: "restaurant_id" },
         ]
       },
       {
