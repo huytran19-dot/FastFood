@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Clock, 
   CheckCircle, 
@@ -14,100 +14,13 @@ import {
   Search,
   Eye,
   ChevronDown,
-  Package
+  Package,
+  Radio
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import Modal from '@/components/ui/modal';
-
-// Mock data
-const mockOrders = [
-  {
-    id: 'ORD001',
-    customerName: 'Nguyễn Văn A',
-    customerPhone: '0901234567',
-    customerAddress: '123 Trần Hưng Đạo, Q1, TP.HCM',
-    status: 'pending',
-    items: [
-      { name: 'Burger Phô Mai Đặc Biệt', quantity: 2, price: 89000 },
-      { name: 'Gà Rán Giòn', quantity: 1, price: 129000 }
-    ],
-    totalAmount: 307000,
-    orderTime: '2025-11-05T10:30:00',
-    note: 'Không hành, ít đá'
-  },
-  {
-    id: 'ORD002',
-    customerName: 'Trần Thị B',
-    customerPhone: '0912345678',
-    customerAddress: '456 Lê Lợi, Q3, TP.HCM',
-    status: 'preparing',
-    items: [
-      { name: 'Pizza Hải Sản', quantity: 1, price: 159000 },
-      { name: 'Trà Sữa Trân Châu', quantity: 2, price: 45000 }
-    ],
-    totalAmount: 249000,
-    orderTime: '2025-11-05T10:15:00',
-    note: ''
-  },
-  {
-    id: 'ORD003',
-    customerName: 'Lê Văn C',
-    customerPhone: '0923456789',
-    customerAddress: '789 Nguyễn Huệ, Q1, TP.HCM',
-    status: 'ready',
-    items: [
-      { name: 'Mì Ý Sốt Bò Bằm', quantity: 1, price: 79000 },
-      { name: 'Salad Caesar', quantity: 1, price: 69000 }
-    ],
-    totalAmount: 148000,
-    orderTime: '2025-11-05T10:00:00',
-    note: 'Giao trước 12h'
-  },
-  {
-    id: 'ORD004',
-    customerName: 'Phạm Thị D',
-    customerPhone: '0934567890',
-    customerAddress: '321 Võ Văn Tần, Q3, TP.HCM',
-    status: 'delivering',
-    items: [
-      { name: 'Sushi Set', quantity: 1, price: 189000 },
-      { name: 'Trà Sữa Trân Châu', quantity: 1, price: 45000 }
-    ],
-    totalAmount: 234000,
-    orderTime: '2025-11-05T09:45:00',
-    deliveryTime: '2025-11-05T10:30:00',
-    note: ''
-  },
-  {
-    id: 'ORD005',
-    customerName: 'Hoàng Văn E',
-    customerPhone: '0945678901',
-    customerAddress: '555 Hai Bà Trưng, Q1, TP.HCM',
-    status: 'completed',
-    items: [
-      { name: 'Burger Phô Mai Đặc Biệt', quantity: 3, price: 89000 },
-      { name: 'Gà Rán Giòn', quantity: 2, price: 129000 }
-    ],
-    totalAmount: 525000,
-    orderTime: '2025-11-05T09:00:00',
-    completedTime: '2025-11-05T10:15:00',
-    note: ''
-  },
-  {
-    id: 'ORD006',
-    customerName: 'Vũ Thị F',
-    customerPhone: '0956789012',
-    customerAddress: '888 Lý Tự Trọng, Q1, TP.HCM',
-    status: 'cancelled',
-    items: [
-      { name: 'Pizza Hải Sản', quantity: 1, price: 159000 }
-    ],
-    totalAmount: 159000,
-    orderTime: '2025-11-05T08:30:00',
-    cancelReason: 'Khách hàng hủy đơn',
-    note: ''
-  }
-];
+import { orderAPI } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 const statusConfig = {
   pending: {
@@ -127,6 +40,12 @@ const statusConfig = {
     color: 'bg-purple-100 text-purple-800',
     icon: CheckCircle,
     badgeColor: 'bg-purple-500'
+  },
+  assigned: {
+    label: 'Đã gán đơn',
+    color: 'bg-green-100 text-green-800',
+    icon: CheckCircle,
+    badgeColor: 'bg-green-500'
   },
   delivering: {
     label: 'Đang giao',
@@ -149,11 +68,36 @@ const statusConfig = {
 };
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState(mockOrders);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch orders from API
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const data = await orderAPI.getAll(selectedStatus);
+      setOrders(data.orders || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Không thể tải danh sách đơn hàng',
+      });
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, [selectedStatus]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -174,10 +118,17 @@ export default function OrdersPage() {
 
   const filteredOrders = orders.filter(order => {
     const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
+    
+    if (!searchTerm) {
+      return matchesStatus;
+    }
+    
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerPhone.includes(searchTerm);
+      String(order.id || '').toLowerCase().includes(searchLower) ||
+      (order.customerName || '').toLowerCase().includes(searchLower) ||
+      (order.customerPhone || '').includes(searchTerm);
+    
     return matchesStatus && matchesSearch;
   });
 
@@ -186,26 +137,57 @@ export default function OrdersPage() {
     pending: orders.filter(o => o.status === 'pending').length,
     preparing: orders.filter(o => o.status === 'preparing').length,
     ready: orders.filter(o => o.status === 'ready').length,
+    assigned: orders.filter(o => o.status === 'assigned').length,
     delivering: orders.filter(o => o.status === 'delivering').length,
     completed: orders.filter(o => o.status === 'completed').length,
     cancelled: orders.filter(o => o.status === 'cancelled').length
   };
 
-  const handleUpdateStatus = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status: newStatus }
-        : order
-    ));
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      await orderAPI.updateStatus(orderId, newStatus);
+      toast({
+        title: 'Thành công',
+        description: 'Đã cập nhật trạng thái đơn hàng',
+      });
+      // Refresh orders list
+      await fetchOrders();
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: error.message || 'Không thể cập nhật trạng thái đơn hàng',
+      });
+    }
   };
 
-  const handleViewDetail = (order) => {
-    setSelectedOrder(order);
-    setIsDetailModalOpen(true);
+  const handleViewDetail = async (order) => {
+    try {
+      // Fetch full order detail from API
+      const data = await orderAPI.getById(order.id);
+      setSelectedOrder(data.order);
+      setIsDetailModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching order detail:', error);
+      // Fallback to using order from list
+      setSelectedOrder(order);
+      setIsDetailModalOpen(true);
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi',
+        description: 'Không thể tải chi tiết đơn hàng',
+      });
+    }
   };
 
   const StatusBadge = ({ status }) => {
-    const config = statusConfig[status];
+    const config = statusConfig[status] || {
+      label: status || 'Unknown',
+      color: 'bg-gray-100 text-gray-800',
+      icon: Clock,
+      badgeColor: 'bg-gray-500'
+    };
     const Icon = config.icon;
     return (
       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${config.color}`}>
@@ -279,9 +261,22 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
+      {/* Loading State */}
+      {loading && (
+        <Card>
+          <CardContent className="py-16">
+            <div className="text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent mx-auto mb-4"></div>
+              <p className="text-gray-600">Đang tải đơn hàng...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Orders List */}
-      <div className="space-y-4">
-        {filteredOrders.map(order => (
+      {!loading && (
+        <div className="space-y-4">
+          {filteredOrders.map(order => (
           <Card key={order.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
               <div className="space-y-4">
@@ -367,7 +362,7 @@ export default function OrdersPage() {
                         className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium"
                       >
                         <CheckCircle className="h-4 w-4" />
-                        Xác nhận
+                        Xác nhận & Bắt đầu chuẩn bị
                       </button>
                       <button
                         onClick={() => handleUpdateStatus(order.id, 'cancelled')}
@@ -390,13 +385,10 @@ export default function OrdersPage() {
                   )}
 
                   {order.status === 'ready' && (
-                    <button
-                      onClick={() => handleUpdateStatus(order.id, 'delivering')}
-                      className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium"
-                    >
-                      <Truck className="h-4 w-4" />
-                      Bắt đầu giao
-                    </button>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                      <Radio className="h-4 w-4" />
+                      <span>Vui lòng qua <strong>Điều Khiển Drone</strong> để gán đơn cho drone</span>
+                    </div>
                   )}
 
                   {order.status === 'delivering' && (
@@ -412,11 +404,12 @@ export default function OrdersPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Empty State */}
-      {filteredOrders.length === 0 && (
+      {!loading && filteredOrders.length === 0 && (
         <Card>
           <CardContent className="py-16">
             <div className="text-center">
