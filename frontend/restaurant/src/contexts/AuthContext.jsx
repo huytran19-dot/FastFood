@@ -44,8 +44,9 @@ export function AuthProvider({ children }) {
     try {
       const data = await authAPI.login(credentials);
       
-      // Always set user
+      // Always set user and save to localStorage
       setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
       
       // Handle restaurant based on status
       if (data.restaurant) {
@@ -55,24 +56,27 @@ export function AuthProvider({ children }) {
           // Only set restaurant in context if APPROVED
           setRestaurant(data.restaurant);
           localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
+          localStorage.removeItem('pendingRestaurant'); // Clear any pending data
           
           toast({
             title: 'Đăng nhập thành công',
             description: `Xin chào, ${data.user.name}!`,
           });
         } else if (review_status === 'PENDING') {
-          // Don't set restaurant in context for PENDING
+          // Save to pendingRestaurant instead for status pages
           setRestaurant(null);
           localStorage.removeItem('restaurant');
+          localStorage.setItem('pendingRestaurant', JSON.stringify(data.restaurant));
           
           toast({
             title: 'Nhà hàng đang chờ duyệt',
             description: 'Nhà hàng của bạn đang được xem xét',
           });
         } else if (review_status === 'REJECTED') {
-          // Don't set restaurant in context for REJECTED
+          // Save to pendingRestaurant for rejected status too
           setRestaurant(null);
           localStorage.removeItem('restaurant');
+          localStorage.setItem('pendingRestaurant', JSON.stringify(data.restaurant));
           
           toast({
             variant: 'destructive',
@@ -84,6 +88,7 @@ export function AuthProvider({ children }) {
         // No restaurant at all - need to register
         setRestaurant(null);
         localStorage.removeItem('restaurant');
+        localStorage.removeItem('pendingRestaurant');
         
         toast({
           title: 'Đăng nhập thành công',
@@ -128,7 +133,9 @@ export function AuthProvider({ children }) {
       await authAPI.logout();
       setUser(null);
       setRestaurant(null);
+      localStorage.removeItem('user');
       localStorage.removeItem('restaurant');
+      localStorage.removeItem('pendingRestaurant');
       
       if (showToast) {
         toast({

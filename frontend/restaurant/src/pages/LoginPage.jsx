@@ -47,11 +47,11 @@ export default function LoginPage() {
         } else if (review_status === 'REJECTED') {
           navigate('/rejected')
         } else if (review_status === 'APPROVED') {
-          navigate('/dashboard')
+          navigate('/restaurant/dashboard')
         } else {
           // Default to dashboard if status is unknown
           console.log('⚠️ Unknown status, going to dashboard')
-          navigate('/dashboard')
+          navigate('/restaurant/dashboard')
         }
       }
     } catch (error) {

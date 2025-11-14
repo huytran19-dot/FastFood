@@ -34,9 +34,8 @@ export const authAPI = {
     
     const data = await handleResponse(response);
     
+    // Only save token here - user and restaurant will be managed by AuthContext
     localStorage.setItem('authToken', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    localStorage.setItem('restaurant', JSON.stringify(data.restaurant));
     
     return data;
   },
@@ -66,7 +65,7 @@ export const authAPI = {
 
   async logout() {
     localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+    // Don't remove user/restaurant here - AuthContext manages that
     return true;
   },
 
@@ -220,7 +219,7 @@ export const restaurantAPI = {
       });
       
       if (!response.ok) {
-        console.warn('Stats API not available (401/404), using mock data');
+        console.warn('Stats API not available (401/404), returning default values');
         return {
           totalOrders: 0,
           pendingOrders: 0,
@@ -234,7 +233,7 @@ export const restaurantAPI = {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.warn('Stats API error, using mock data:', error.message);
+      console.warn('Stats API error, returning default values:', error.message);
       return {
         totalOrders: 0,
         pendingOrders: 0,
@@ -244,5 +243,84 @@ export const restaurantAPI = {
         totalMenuItems: 0
       };
     }
+  }
+};
+
+// Order API
+export const orderAPI = {
+  async getAll(status = 'all') {
+    const url = status === 'all' 
+      ? `${API_BASE_URL}/restaurant/orders`
+      : `${API_BASE_URL}/restaurant/orders?status=${status}`;
+    
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  async getById(id) {
+    const response = await fetch(`${API_BASE_URL}/restaurant/orders/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  async updateStatus(id, status) {
+    const response = await fetch(`${API_BASE_URL}/restaurant/orders/${id}/status`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    
+    return handleResponse(response);
+  }
+};
+
+// Drone API
+export const droneAPI = {
+  async getAvailableDrones() {
+    const response = await fetch(`${API_BASE_URL}/restaurant/drones`, {
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  async assignOrderToDrone(orderId, droneId) {
+    const response = await fetch(`${API_BASE_URL}/restaurant/orders/${orderId}/assign-drone`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ drone_id: droneId }),
+    });
+    
+    return handleResponse(response);
+  },
+
+  async startDelivery(orderId) {
+    const response = await fetch(`${API_BASE_URL}/restaurant/orders/${orderId}/start-delivery`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  async getDronePosition(droneId) {
+    const response = await fetch(`${API_BASE_URL}/restaurant/drones/${droneId}/position`, {
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
+  },
+
+  async getOrderDistance(orderId) {
+    const response = await fetch(`${API_BASE_URL}/restaurant/orders/${orderId}/distance`, {
+      headers: getAuthHeaders(),
+    });
+    
+    return handleResponse(response);
   }
 };

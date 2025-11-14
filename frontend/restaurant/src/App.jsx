@@ -13,6 +13,7 @@ import DashboardPage from '@/pages/DashboardPage'
 import MenuPage from '@/pages/MenuPage'
 import CategoriesPage from '@/pages/CategoriesPage'
 import OrdersPage from '@/pages/OrdersPage'
+import DroneControlPage from '@/pages/DroneControlPage'
 import ProfilePage from '@/pages/ProfilePage'
 import RestaurantLayout from '@/components/layout/RestaurantLayout'
 
@@ -31,25 +32,49 @@ function ProtectedRoute({ children }) {
       return
     }
 
-    // If user has no restaurant, redirect to registration
-    if (!restaurant) {
+    // Check if user has pending/rejected restaurant in localStorage
+    const pendingRestaurantStr = localStorage.getItem('pendingRestaurant')
+    if (pendingRestaurantStr && !restaurant) {
+      try {
+        const pendingRestaurant = JSON.parse(pendingRestaurantStr)
+        const { review_status } = pendingRestaurant
+        
+        if (review_status === 'PENDING') {
+          navigate('/pending', { replace: true })
+          return
+        }
+        
+        if (review_status === 'REJECTED') {
+          navigate('/rejected', { replace: true })
+          return
+        }
+      } catch (error) {
+        console.error('Failed to parse pendingRestaurant:', error)
+        localStorage.removeItem('pendingRestaurant')
+      }
+    }
+
+    // If user has no restaurant at all, redirect to registration
+    if (!restaurant && !pendingRestaurantStr) {
       if (location.pathname !== '/restaurant/register') {
         navigate('/restaurant/register', { replace: true })
       }
       return
     }
 
-    // Check review_status - redirect non-approved restaurants
-    const { review_status } = restaurant
-    
-    if (review_status === 'PENDING') {
-      navigate('/pending', { replace: true })
-      return
-    }
+    // If restaurant is in context, check its status (should always be APPROVED at this point)
+    if (restaurant) {
+      const { review_status } = restaurant
+      
+      if (review_status === 'PENDING') {
+        navigate('/pending', { replace: true })
+        return
+      }
 
-    if (review_status === 'REJECTED') {
-      navigate('/rejected', { replace: true })
-      return
+      if (review_status === 'REJECTED') {
+        navigate('/rejected', { replace: true })
+        return
+      }
     }
 
   }, [user, restaurant, loading, location.pathname, navigate])
@@ -121,6 +146,7 @@ function AppContent() {
         <Route path="/restaurant/menu" element={<ProtectedRoute><RestaurantLayout><MenuPage /></RestaurantLayout></ProtectedRoute>} />
         <Route path="/restaurant/categories" element={<ProtectedRoute><RestaurantLayout><CategoriesPage /></RestaurantLayout></ProtectedRoute>} />
         <Route path="/restaurant/orders" element={<ProtectedRoute><RestaurantLayout><OrdersPage /></RestaurantLayout></ProtectedRoute>} />
+        <Route path="/restaurant/drones" element={<ProtectedRoute><RestaurantLayout><DroneControlPage /></RestaurantLayout></ProtectedRoute>} />
         {/* Deliveries route temporarily disabled - feature under development */}
         {/* <Route path="/restaurant/deliveries" element={<ProtectedRoute><RestaurantLayout><DeliveriesPage /></RestaurantLayout></ProtectedRoute>} /> */}
         <Route path="/restaurant/profile" element={<ProtectedRoute><RestaurantLayout><ProfilePage /></RestaurantLayout></ProtectedRoute>} />
