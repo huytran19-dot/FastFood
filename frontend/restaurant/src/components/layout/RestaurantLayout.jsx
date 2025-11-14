@@ -10,7 +10,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  ChevronDown
+  ChevronDown,
+  Radio
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -36,6 +37,11 @@ export default function RestaurantLayout({ children }) {
       name: 'Quản Lý Đơn Hàng',
       href: '/restaurant/orders',
       icon: ShoppingCart
+    },
+    {
+      name: 'Điều Khiển Drone',
+      href: '/restaurant/drones',
+      icon: Radio
     },
     {
       name: 'Quản Lý Menu',
