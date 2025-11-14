@@ -1,4 +1,6 @@
 const db = require('../models');
+const droneService = require('../services/droneServices');
+const droneSimulator = require('../services/droneSimulator');
 
 // POST /api/restaurants - Create new restaurant
 exports.createRestaurant = async (req, res) => {
@@ -32,6 +34,8 @@ exports.createRestaurant = async (req, res) => {
     }
 
     // Create restaurant
+    console.log('🏪 [Create Restaurant] User ID:', req.user.id, 'Email:', req.user.email);
+    
     const restaurant = await db.restaurants.create({
       name,
       description,
@@ -44,6 +48,12 @@ exports.createRestaurant = async (req, res) => {
       close_time,
       lat: lat || null,
       lng: lng || null
+    });
+
+    console.log('✅ [Create Restaurant] Created:', {
+      id: restaurant.id,
+      name: restaurant.name,
+      owner_id: restaurant.owner_id
     });
 
     res.status(201).json(restaurant);
@@ -307,4 +317,672 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 function toRad(degrees) {
   return degrees * (Math.PI / 180);
+}
+
+// ===== RESTAURANT ORDERS MANAGEMENT =====
+
+// GET /api/restaurant/orders - Get all orders for restaurant
+exports.getRestaurantOrders = async (req, res) => {
+  try {
+    // Get restaurant owned by user
+    const restaurant = await db.restaurants.findOne({
+      where: { owner_id: req.user.id }
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
+    }
+
+    const { status } = req.query;
+    const where = { restaurant_id: restaurant.id };
+    
+    // Map frontend status to backend status for filtering
+    const frontendToBackendStatus = {
+      'pending': 'PENDING',
+      'ready': 'CONFIRMED',
+      'preparing': 'PREPARING',
+      'delivering': 'DELIVERING',
+      'completed': 'COMPLETED',
+      'cancelled': 'CANCELLED'
+    };
+    
+    if (status && status !== 'all') {
+      const backendStatus = frontendToBackendStatus[status.toLowerCase()];
+      if (backendStatus) {
+        where.status = backendStatus;
+      }
+    }
+
+    const orders = await db.orders.findAll({
+      where,
+      include: [
+        {
+          model: db.users,
+          as: 'customer',
+          attributes: ['id', 'full_name', 'email', 'phone']
+        },
+        {
+          model: db.order_items,
+          as: 'order_items',
+          include: [{
+            model: db.menu_items,
+            as: 'item',
+            attributes: ['id', 'name', 'price', 'image_url']
+          }]
+        },
+        {
+          model: db.payments,
+          as: 'payment',
+          attributes: ['method', 'status']
+        },
+        {
+          model: db.drones,
+          as: 'drone',
+          attributes: ['id', 'model'],
+          required: false
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    // Map backend status to frontend status
+    const statusMap = {
+      'PENDING': 'pending',
+      'CONFIRMED': 'ready', // CONFIRMED maps to ready (sẵn sàng giao)
+      'PREPARING': 'preparing',
+      'DELIVERING': 'delivering',
+      'COMPLETED': 'completed',
+      'CANCELLED': 'cancelled'
+    };
+
+    // Transform orders to match frontend format
+    const formattedOrders = orders.map(order => {
+      const orderData = order.toJSON();
+      // If order has drone_id, status is "assigned" (đã gán đơn)
+      const hasDrone = !!orderData.drone_id;
+      const displayStatus = hasDrone ? 'assigned' : (statusMap[orderData.status] || orderData.status.toLowerCase());
+      
+      return {
+        id: orderData.id,
+        status: displayStatus,
+        totalAmount: parseFloat(orderData.total_price),
+        orderTime: orderData.created_at,
+        deliveryTime: orderData.status === 'DELIVERING' ? orderData.updated_at : null,
+        completedTime: orderData.status === 'COMPLETED' ? orderData.updated_at : null,
+        customerName: orderData.delivery_name || orderData.customer?.full_name || 'N/A',
+        customerPhone: orderData.delivery_phone || orderData.customer?.phone || 'N/A',
+        customerAddress: orderData.delivery_address,
+        deliveryAddress: orderData.delivery_address, // Alias for compatibility
+        note: orderData.note,
+        items: orderData.order_items?.map(item => ({
+          id: item.item?.id,
+          name: item.item?.name || 'Món đã bị xóa',
+          price: parseFloat(item.price),
+          quantity: item.quantity,
+          image_url: item.item?.image_url
+        })) || [],
+        payment_method: orderData.payment?.method,
+        payment_status: orderData.payment?.status,
+        drone_id: orderData.drone_id,
+        drone_model: orderData.drone?.model || null
+      };
+    });
+
+    res.json({ orders: formattedOrders });
+  } catch (error) {
+    console.error('Get restaurant orders error:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// GET /api/restaurant/orders/:id - Get order detail
+exports.getRestaurantOrderDetail = async (req, res) => {
+  try {
+    // Get restaurant owned by user
+    const restaurant = await db.restaurants.findOne({
+      where: { owner_id: req.user.id }
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
+    }
+
+    const order = await db.orders.findOne({
+      where: {
+        id: req.params.id,
+        restaurant_id: restaurant.id
+      },
+      include: [
+        {
+          model: db.users,
+          as: 'customer',
+          attributes: ['id', 'full_name', 'email', 'phone']
+        },
+        {
+          model: db.order_items,
+          as: 'order_items',
+          include: [{
+            model: db.menu_items,
+            as: 'item',
+            attributes: ['id', 'name', 'price', 'image_url', 'description']
+          }]
+        },
+        {
+          model: db.payments,
+          as: 'payment',
+          attributes: ['method', 'status', 'transaction_no', 'created_at']
+        }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Map backend status to frontend status
+    const statusMap = {
+      'PENDING': 'pending',
+      'CONFIRMED': 'ready',
+      'PREPARING': 'preparing',
+      'DELIVERING': 'delivering',
+      'COMPLETED': 'completed',
+      'CANCELLED': 'cancelled'
+    };
+
+    const orderData = order.toJSON();
+    const formattedOrder = {
+      id: orderData.id,
+      status: statusMap[orderData.status] || orderData.status.toLowerCase(),
+      totalAmount: parseFloat(orderData.total_price),
+      orderTime: orderData.created_at,
+      deliveryTime: orderData.status === 'DELIVERING' ? orderData.updated_at : null,
+      completedTime: orderData.status === 'COMPLETED' ? orderData.updated_at : null,
+      customerName: orderData.delivery_name || orderData.customer?.full_name || 'N/A',
+      customerPhone: orderData.delivery_phone || orderData.customer?.phone || 'N/A',
+      customerAddress: orderData.delivery_address,
+      note: orderData.note,
+      items: orderData.order_items?.map(item => ({
+        id: item.item?.id,
+        name: item.item?.name || 'Món đã bị xóa',
+        price: parseFloat(item.price),
+        quantity: item.quantity,
+        image_url: item.item?.image_url,
+        description: item.item?.description
+      })) || [],
+      payment_method: orderData.payment?.method,
+      payment_status: orderData.payment?.status,
+      delivery_fee: parseFloat(orderData.delivery_fee || 0)
+    };
+
+    res.json({ order: formattedOrder });
+  } catch (error) {
+    console.error('Get restaurant order detail error:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// PUT /api/restaurant/orders/:id/status - Update order status
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    let { status } = req.body;
+    
+    // Map frontend status to backend status
+    const frontendToBackendStatus = {
+      'pending': 'PENDING',
+      'ready': 'CONFIRMED', // Frontend 'ready' maps to backend 'CONFIRMED'
+      'preparing': 'PREPARING',
+      'delivering': 'DELIVERING',
+      'completed': 'COMPLETED',
+      'cancelled': 'CANCELLED',
+      'assigned': 'CONFIRMED' // 'assigned' also maps to 'CONFIRMED' (order has drone but not yet delivering)
+    };
+    
+    // Convert to lowercase for mapping
+    const statusLower = status?.toLowerCase();
+    if (frontendToBackendStatus[statusLower]) {
+      status = frontendToBackendStatus[statusLower];
+    } else {
+      // If not in mapping, try uppercase (might already be backend format)
+      status = status?.toUpperCase();
+    }
+    
+    // Validate status
+    const validStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'DELIVERING', 'COMPLETED', 'CANCELLED'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
+    }
+
+    // Get restaurant owned by user
+    const restaurant = await db.restaurants.findOne({
+      where: { owner_id: req.user.id }
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
+    }
+
+    const order = await db.orders.findOne({
+      where: {
+        id: req.params.id,
+        restaurant_id: restaurant.id
+      }
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Validate status transition
+    // Note: 'status' variable has already been mapped to backend format above (line 542)
+    const currentStatus = order.status;
+    const newStatus = status; // Use the already mapped status from above
+    
+    // Define valid transitions
+    const validTransitions = {
+      'PENDING': ['CONFIRMED', 'PREPARING', 'CANCELLED'], // Allow PENDING -> PREPARING directly
+      'CONFIRMED': ['PREPARING', 'CANCELLED'],
+      'PREPARING': ['CONFIRMED', 'DELIVERING', 'CANCELLED'], // Allow PREPARING -> CONFIRMED (ready) to assign drone
+      'DELIVERING': ['COMPLETED'],
+      'COMPLETED': [],
+      'CANCELLED': []
+    };
+
+    if (!validTransitions[currentStatus]?.includes(newStatus)) {
+      return res.status(400).json({ 
+        message: `Không thể chuyển từ ${currentStatus} sang ${newStatus}` 
+      });
+    }
+
+    await order.update({ status: newStatus });
+
+    // Map backend status back to frontend
+    const backendToFrontendStatus = {
+      'PENDING': 'pending',
+      'CONFIRMED': 'ready',
+      'PREPARING': 'preparing',
+      'DELIVERING': 'delivering',
+      'COMPLETED': 'completed',
+      'CANCELLED': 'cancelled'
+    };
+
+    res.json({
+      message: 'Cập nhật trạng thái thành công',
+      order: {
+        id: order.id,
+        status: backendToFrontendStatus[order.status] || order.status.toLowerCase()
+      }
+    });
+  } catch (error) {
+    console.error('Update order status error:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// GET /api/restaurant/drones - Get available drones
+exports.getAvailableDrones = async (req, res) => {
+  try {
+    // Get all drones (restaurant_id = null means available for all restaurants)
+    const drones = await db.drones.findAll({
+      order: [['id', 'ASC']]
+    });
+
+    // Return all drones as available (same logic as admin dashboard)
+    const formattedDrones = drones.map(drone => {
+      const droneData = drone.toJSON();
+      return {
+        drone_id: droneData.id,
+        model: droneData.model,
+        capacity: parseFloat(droneData.capacity),
+        battery: parseFloat(droneData.battery),
+        status: 'IDLE',
+        is_available: true
+      };
+    });
+
+    console.log(`✅ [Restaurant Drones] Trả về ${formattedDrones.length} drones`);
+    res.json({ drones: formattedDrones });
+  } catch (error) {
+    console.error('Get available drones error:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// POST /api/restaurant/orders/:id/assign-drone - Assign order to drone
+exports.assignOrderToDrone = async (req, res) => {
+  try {
+    const { drone_id } = req.body;
+    const { id: order_id } = req.params;
+
+    if (!drone_id) {
+      return res.status(400).json({ message: 'Vui lòng chọn drone' });
+    }
+
+    // Get restaurant of current user
+    const restaurant = await db.restaurants.findOne({
+      where: { owner_id: req.user.id }
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
+    }
+
+    // Check if order exists and belongs to this restaurant
+    const order = await db.orders.findByPk(order_id, {
+      include: [{
+        model: db.restaurants,
+        as: 'restaurant',
+        attributes: ['id', 'name', 'address', 'lat', 'lng']
+      }]
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Verify order belongs to this restaurant
+    if (order.restaurant_id !== restaurant.id) {
+      return res.status(403).json({ message: 'Bạn không có quyền gán đơn hàng này' });
+    }
+
+    // Check if order is ready for delivery (can assign drone)
+    // Frontend 'ready' = Backend 'CONFIRMED'
+    // Allow assigning to orders with CONFIRMED status (can reassign if already assigned)
+    if (order.status !== 'CONFIRMED') {
+      return res.status(400).json({ 
+        message: `Đơn hàng đang ở trạng thái ${order.status}, không thể gán drone. Chỉ có thể gán khi đơn hàng ở trạng thái CONFIRMED (Sẵn sàng giao).` 
+      });
+    }
+
+    // Check if drone exists (all drones are available, no need to check busy status)
+    const drone = await db.drones.findByPk(drone_id);
+
+    if (!drone) {
+      return res.status(404).json({ message: 'Không tìm thấy drone' });
+    }
+
+    // Check if order already has a delivery
+    const existingDelivery = await db.deliveries.findOne({
+      where: { order_id }
+    });
+
+    if (existingDelivery) {
+      // Update existing delivery
+      await existingDelivery.update({
+        drone_id,
+        status: 'ASSIGNED',
+        start_location: order.restaurant?.address || null
+      });
+    } else {
+      // Create new delivery
+      await db.deliveries.create({
+        order_id,
+        drone_id,
+        status: 'ASSIGNED',
+        start_location: order.restaurant?.address || null,
+        end_location: order.delivery_address
+      });
+    }
+
+    // Update order: set drone_id but keep status as CONFIRMED (đã gán đơn)
+    await order.update({ 
+      drone_id
+      // Keep status as CONFIRMED, don't change to DELIVERING
+    });
+
+    res.json({
+      message: 'Gán đơn hàng cho drone thành công',
+      delivery: {
+        order_id,
+        drone_id,
+        status: 'ASSIGNED'
+      }
+    });
+  } catch (error) {
+    console.error('Assign order to drone error:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// POST /api/restaurant/orders/:id/start-delivery - Start drone delivery simulation
+exports.startDelivery = async (req, res) => {
+  try {
+    const { id: orderId } = req.params;
+
+    // Get restaurant owned by user
+    const restaurant = await db.restaurants.findOne({
+      where: { owner_id: req.user.id }
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
+    }
+
+    // Get order
+    const order = await db.orders.findOne({
+      where: {
+        id: orderId,
+        restaurant_id: restaurant.id
+      },
+      include: [
+        {
+          model: db.drones,
+          as: 'drone',
+          attributes: ['id', 'model']
+        }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    if (!order.drone_id) {
+      return res.status(400).json({ message: 'Đơn hàng chưa được gán cho drone' });
+    }
+
+    // Check if simulation is already running
+    if (droneSimulator.isSimulationRunning(order.drone_id)) {
+      return res.status(400).json({ message: 'Drone đang trong quá trình giao hàng' });
+    }
+
+    // Get restaurant coordinates
+    if (!restaurant.lat || !restaurant.lng) {
+      return res.status(400).json({ message: 'Nhà hàng chưa có tọa độ. Vui lòng cập nhật vị trí nhà hàng.' });
+    }
+
+    // Get delivery address coordinates (simplified - in production, use geocoding API)
+    // For now, we'll generate a simple route from restaurant to a nearby point
+    // In production, you should geocode the delivery_address to get lat/lng
+    const startLat = parseFloat(restaurant.lat);
+    const startLng = parseFloat(restaurant.lng);
+
+    // Generate route points (simplified - straight line with intermediate points)
+    // In production, use a routing service like OSRM or Google Directions API
+    const routePoints = generateRoutePoints(startLat, startLng, order.delivery_address);
+
+    // Start simulation
+    console.log(`🚀 [StartDelivery] Starting simulation for drone ${order.drone_id}, order ${orderId}`);
+    console.log(`🚀 [StartDelivery] Route points:`, routePoints.length, 'points');
+    
+    await droneSimulator.startDroneSimulation(
+      order.drone_id,
+      orderId,
+      routePoints,
+      {
+        intervalMs: 2000, // Update every 2 seconds
+        saveToDbEvery: 5 // Save to DB every 5 steps
+      }
+    );
+
+    // Update order status to DELIVERING
+    await order.update({ status: 'DELIVERING' });
+    
+    console.log(`✅ [StartDelivery] Simulation started successfully for order ${orderId}`);
+
+    res.json({
+      message: 'Đã bắt đầu giao hàng',
+      data: {
+        order_id: orderId,
+        drone_id: order.drone_id,
+        drone_model: order.drone?.model,
+        status: 'DELIVERING',
+        route_points_count: routePoints.length
+      }
+    });
+  } catch (error) {
+    console.error('Start delivery error:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// GET /api/restaurant/drones/:id/position - Get real-time drone position
+exports.getDronePosition = async (req, res) => {
+  try {
+    const { id: droneId } = req.params;
+
+    // Get restaurant owned by user
+    const restaurant = await db.restaurants.findOne({
+      where: { owner_id: req.user.id }
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
+    }
+
+    // Get drone position from Redis
+    const position = await droneService.getDronePosition(droneId);
+
+    if (!position) {
+      return res.status(404).json({ message: 'Không tìm thấy vị trí drone hoặc drone chưa bắt đầu bay' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        drone_id: parseInt(droneId),
+        position: {
+          lat: position.lat,
+          lng: position.lng,
+          status: position.status,
+          timestamp: position.ts
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get drone position error:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// GET /api/restaurant/orders/:id/distance - Calculate distance from drone to destination
+exports.getOrderDistance = async (req, res) => {
+  try {
+    const { id: orderId } = req.params;
+
+    // Get restaurant owned by user
+    const restaurant = await db.restaurants.findOne({
+      where: { owner_id: req.user.id }
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
+    }
+
+    // Get order
+    const order = await db.orders.findOne({
+      where: {
+        id: orderId,
+        restaurant_id: restaurant.id
+      },
+      include: [
+        {
+          model: db.drones,
+          as: 'drone',
+          attributes: ['id']
+        }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    if (!order.drone_id) {
+      return res.status(400).json({ message: 'Đơn hàng chưa được gán cho drone' });
+    }
+
+    // Get current drone position
+    const dronePosition = await droneService.getDronePosition(order.drone_id);
+
+    if (!dronePosition) {
+      return res.status(404).json({ 
+        message: 'Không tìm thấy vị trí drone. Drone có thể chưa bắt đầu bay.' 
+      });
+    }
+
+    // Get destination coordinates (simplified - use restaurant coordinates as destination for now)
+    // In production, geocode delivery_address
+    const destLat = restaurant.lat ? parseFloat(restaurant.lat) : null;
+    const destLng = restaurant.lng ? parseFloat(restaurant.lng) : null;
+
+    if (!destLat || !destLng) {
+      return res.status(400).json({ message: 'Không có tọa độ đích' });
+    }
+
+    // Calculate distance
+    const distance = calculateDistance(
+      dronePosition.lat,
+      dronePosition.lng,
+      destLat,
+      destLng
+    );
+
+    res.json({
+      success: true,
+      data: {
+        order_id: orderId,
+        drone_id: order.drone_id,
+        current_position: {
+          lat: dronePosition.lat,
+          lng: dronePosition.lng
+        },
+        destination: {
+          lat: destLat,
+          lng: destLng,
+          address: order.delivery_address
+        },
+        distance_km: Math.round(distance * 100) / 100, // Round to 2 decimals
+        distance_m: Math.round(distance * 1000) // Distance in meters
+      }
+    });
+  } catch (error) {
+    console.error('Get order distance error:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// Helper function to generate route points (simplified)
+// In production, use a routing service
+function generateRoutePoints(startLat, startLng, deliveryAddress) {
+  // Simplified: generate a straight line route with intermediate points
+  // In production, use OSRM or Google Directions API to get actual route
+  
+  // For demo, create a route that goes from restaurant to a point 2km away
+  // You should replace this with actual geocoding and routing
+  const points = [];
+  const numPoints = 20; // Number of intermediate points
+  
+  // Destination (simplified - in production, geocode deliveryAddress)
+  // For now, create a destination 2km northeast of start
+  const destLat = startLat + 0.018; // ~2km north
+  const destLng = startLng + 0.018; // ~2km east
+  
+  for (let i = 0; i <= numPoints; i++) {
+    const ratio = i / numPoints;
+    const lat = startLat + (destLat - startLat) * ratio;
+    const lng = startLng + (destLng - startLng) * ratio;
+    points.push({ lat, lng });
+  }
+  
+  return points;
 }

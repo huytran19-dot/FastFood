@@ -25,6 +25,10 @@ class OrderService {
       }
 
       // Tạo order
+      // COD: tạo với status CONFIRMED ngay
+      // Các phương thức khác: tạo với status PENDING
+      const orderStatus = payment_method === 'COD' ? 'CONFIRMED' : 'PENDING';
+      
       const order = await orders.create({
         customer_id: userId,
         restaurant_id,
@@ -34,7 +38,7 @@ class OrderService {
         delivery_name,
         note,
         delivery_fee,
-        status: 'PENDING'
+        status: orderStatus
       }, { transaction });
 
       // Tạo order items
@@ -151,6 +155,7 @@ class OrderService {
     if (transactionNo) {
       payment.transaction_no = transactionNo;
     }
+    
     await payment.save();
 
     // Nếu thanh toán thành công, cập nhật trạng thái order
@@ -159,9 +164,49 @@ class OrderService {
         { status: 'CONFIRMED' },
         { where: { id: orderId } }
       );
+      console.log(`✅ Order #${orderId} status updated to CONFIRMED`);
     }
 
     return payment;
+  }
+
+  // Cập nhật trạng thái đơn hàng
+  async updateOrderStatus(orderId, newStatus, userId = null) {
+    const whereClause = { id: orderId };
+    if (userId) {
+      whereClause.customer_id = userId;
+    }
+
+    const order = await orders.findOne({
+      where: whereClause,
+      include: [{
+        model: payments,
+        as: 'payment'
+      }]
+    });
+
+    if (!order) {
+      throw new Error('Không tìm thấy đơn hàng');
+    }
+
+    // Validate status transition
+    const validStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'DELIVERING', 'COMPLETED', 'CANCELLED'];
+    if (!validStatuses.includes(newStatus)) {
+      throw new Error('Trạng thái không hợp lệ');
+    }
+
+    order.status = newStatus;
+    await order.save();
+
+    // Nếu order chuyển sang DELIVERED và payment method là COD
+    // Tự động cập nhật payment status thành SUCCESS
+    if (newStatus === 'DELIVERING' && order.payment && order.payment.method === 'COD') {
+      order.payment.status = 'PAID';
+      await order.payment.save();
+      console.log(`✅ COD Payment #${order.payment.id} marked as PAID for order #${orderId}`);
+    }
+
+    return order;
   }
 
   // Hủy đơn hàng

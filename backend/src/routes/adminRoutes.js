@@ -19,4 +19,16 @@ router.put('/restaurants/:id/approve', adminControllers.approveRestaurant);
 router.put('/restaurants/:id/reject', adminControllers.rejectRestaurant);
 router.put('/restaurants/:id/toggle-status', adminControllers.toggleRestaurantStatus);
 
+// ===== ORDER MANAGEMENT =====
+router.get('/orders', adminControllers.getAllOrders);
+
+// ===== DRONE MANAGEMENT =====
+router.get('/drones', adminControllers.getAllDrones);
+router.post('/drones', adminControllers.createDrone);
+router.put('/drones/:id', adminControllers.updateDrone);
+router.delete('/drones/:id', adminControllers.deleteDrone);
+
+// ===== ORDER-DRONE ASSIGNMENT =====
+router.post('/orders/:id/assign-drone', adminControllers.assignOrderToDrone);
+
 module.exports = router;
