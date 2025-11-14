@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react"
-import { ChevronLeft, CreditCard, Wallet, Banknote, MapPin } from "lucide-react"
+import { ChevronLeft, Banknote, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { useNavigate } from "react-router-dom"
 import { Link } from "react-router-dom"
@@ -13,10 +12,10 @@ import { useCart } from "@/contexts/CartContext"
 import { useAuth } from "@/contexts/AuthContext"
 import AddressMapPicker from "@/components/map/AddressMapPicker"
 import AddressAutocomplete from "@/components/ui/address-autocomplete"
-import { orderAPI } from "@/lib/api"
+import { orderAPI, cartAPI } from "@/lib/api"
 
 export default function CheckoutPage() {
-  const [paymentMethod, setPaymentMethod] = useState("wallet")
+  const [paymentMethod, setPaymentMethod] = useState("cod")
   const [isProcessing, setIsProcessing] = useState(false)
   const [deliveryInfo, setDeliveryInfo] = useState({
     fullName: "",
@@ -28,7 +27,7 @@ export default function CheckoutPage() {
   })
   const { toast } = useToast()
   const navigate = useNavigate()
-  const { cart, clearCart } = useCart()
+  const { cart, clearCart, refreshCart } = useCart()
   const { user, isAuthenticated } = useAuth()
 
   useEffect(() => {
@@ -81,6 +80,33 @@ export default function CheckoutPage() {
       return
     }
 
+    // Kiểm tra giỏ hàng từ server trước khi đặt hàng
+    console.log('===== CHECKOUT DEBUG =====');
+    console.log('Cart in state:', cart);
+    
+    try {
+      const serverCart = await cartAPI.getCart();
+      console.log('Cart from server:', serverCart);
+      
+      if (!serverCart || !serverCart.items || serverCart.items.length === 0) {
+        toast({
+          title: "Giỏ hàng trống",
+          description: "Vui lòng thêm món vào giỏ hàng trước khi thanh toán",
+          variant: "destructive"
+        })
+        // Refresh cart state
+        await refreshCart();
+        return
+      }
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể kiểm tra giỏ hàng. Vui lòng thử lại",
+        variant: "destructive"
+      })
+      return
+    }
+
     if (cart.items.length === 0) {
       toast({
         title: "Giỏ hàng trống",
@@ -105,15 +131,6 @@ export default function CheckoutPage() {
     setIsProcessing(true)
 
     try {
-      // Map payment method từ UI sang backend
-      const paymentMethodMap = {
-        'wallet': 'VNPAY',
-        'card': 'VNPAY', 
-        'cod': 'COD'
-      }
-
-      const mappedPaymentMethod = paymentMethodMap[paymentMethod] || 'COD'
-
       // Gọi API tạo đơn hàng
       const orderData = {
         restaurant_id: firstItem.restaurant_id,
@@ -121,18 +138,12 @@ export default function CheckoutPage() {
         delivery_phone: deliveryInfo.phone,
         delivery_name: deliveryInfo.fullName,
         note: deliveryInfo.note,
-        payment_method: mappedPaymentMethod
+        payment_method: 'COD'
       }
 
       const result = await orderAPI.createOrder(orderData)
       
-      // Nếu thanh toán VNPay, chuyển đến trang thanh toán
-      if (result.payment_url) {
-        window.location.href = result.payment_url
-        return
-      }
-
-      // Nếu thanh toán COD, hiển thị thông báo và chuyển đến trang orders
+      // Hiển thị thông báo và chuyển đến trang orders
       setIsProcessing(false)
       toast({
         title: "Đặt hàng thành công!",
@@ -254,35 +265,13 @@ export default function CheckoutPage() {
                   <CardTitle>Phương thức thanh toán</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <div className="mb-3 flex items-center space-x-3 rounded-lg border border-border p-4">
-                      <RadioGroupItem value="wallet" id="wallet" />
-                      <Label
-                        htmlFor="wallet"
-                        className="flex flex-1 cursor-pointer items-center gap-3"
-                      >
-                        <Wallet className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">Ví điện tử</div>
-                          <div className="text-sm text-muted-foreground"> VNPay</div>
-                        </div>
-                      </Label>
+                  <div className="flex items-center space-x-3 rounded-lg border border-border bg-muted/50 p-4">
+                    <Banknote className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">Tiền mặt (COD)</div>
+                      <div className="text-sm text-muted-foreground">Thanh toán khi nhận hàng</div>
                     </div>
-
-                    <div className="flex items-center space-x-3 rounded-lg border border-border p-4">
-                      <RadioGroupItem value="cod" id="cod" />
-                      <Label
-                        htmlFor="cod"
-                        className="flex flex-1 cursor-pointer items-center gap-3"
-                      >
-                        <Banknote className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">Tiền mặt</div>
-                          <div className="text-sm text-muted-foreground">Thanh toán khi nhận hàng</div>
-                        </div>
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                  </div>
                 </CardContent>
               </Card>
             </div>

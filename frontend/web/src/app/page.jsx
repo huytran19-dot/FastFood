@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react"
-import { useState, useEffect } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { RestaurantCard } from "@/components/restaurant-card"
 import { Button } from "@/components/ui/button"
@@ -7,7 +6,6 @@ import { Badge } from "@/components/ui/badge"
 import { Plane, Zap, Shield, Clock, Loader2 } from "lucide-react"
 import { publicAPI } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import { useCart } from "@/contexts/CartContext"
 
 const features = [
@@ -35,13 +33,11 @@ export default function HomePage() {
   const { toast } = useToast()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { refreshCart } = useCart()
   
   // Refs for scrolling
   const restaurantsRef = useRef(null)
   const featuresRef = useRef(null)
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const { refreshCart } = useCart()
 
   useEffect(() => {
     fetchRestaurants()
