@@ -7,21 +7,21 @@ export function AdminAnalytics() {
         <div className="bg-white rounded-2xl shadow-md p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Đơn hàng 14 ngày gần nhất</h2>
           <div className="h-64 flex items-center justify-center text-gray-500">
-            Biểu đồ đường (mock data)
+            Biểu đồ đường
           </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-md p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Doanh thu theo nhà hàng</h2>
           <div className="h-64 flex items-center justify-center text-gray-500">
-            Biểu đồ cột (mock data)
+            Biểu đồ cột
           </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-md p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Phân bố trạng thái đơn hàng</h2>
           <div className="h-64 flex items-center justify-center text-gray-500">
-            Biểu đồ tròn (mock data)
+            Biểu đồ tròn
           </div>
         </div>
 

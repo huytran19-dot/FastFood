@@ -187,7 +187,25 @@ export async function updateDrone(drone_id, patch) {
     },
     body: JSON.stringify(patch)
   });
-  if (!response.ok) throw new Error('Failed to update drone');
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update drone');
+  }
+  return await response.json();
+}
+
+export async function deleteDrone(drone_id) {
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/admin/drones/${drone_id}`, {
+    method: 'DELETE',
+    headers: { 
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete drone');
+  }
   return await response.json();
 }
 
@@ -204,9 +222,13 @@ export async function toggleDroneStatus(drone_id) {
 }
 
 /* ==================== ORDERS ==================== */
-export async function getOrders() {
+export async function getOrders(restaurant_id = null) {
   const token = getAuthToken();
-  const response = await fetch(`${API_BASE_URL}/admin/orders`, {
+  const url = restaurant_id 
+    ? `${API_BASE_URL}/admin/orders?restaurant_id=${restaurant_id}`
+    : `${API_BASE_URL}/admin/orders`;
+  
+  const response = await fetch(url, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -214,6 +236,24 @@ export async function getOrders() {
   if (!response.ok) throw new Error('Failed to fetch orders');
   const data = await response.json();
   return data.orders || data;
+}
+
+/* ==================== ORDER-DRONE ASSIGNMENT ==================== */
+export async function assignOrderToDrone(order_id, drone_id) {
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/admin/orders/${order_id}/assign-drone`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ drone_id })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to assign order to drone');
+  }
+  return await response.json();
 }
 
 /* ==================== DELIVERIES ==================== */

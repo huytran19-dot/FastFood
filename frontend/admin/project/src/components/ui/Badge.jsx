@@ -77,9 +77,63 @@ export function Badge({ status, type = 'order' }) {
     return 'bg-gray-100 text-gray-800';
   };
 
+  const getStatusLabel = () => {
+    if (type === 'order') {
+      const statusMap = {
+        'PENDING': 'Chờ xác nhận',
+        'CONFIRMED': 'Đã xác nhận',
+        'PREPARING': 'Đang chuẩn bị',
+        'DELIVERING': 'Đang giao',
+        'COMPLETED': 'Hoàn thành',
+        'CANCELLED': 'Đã hủy',
+        'PAID': 'Đã thanh toán',
+        'READY_FOR_DELIVERY': 'Sẵn sàng giao',
+        'FAILED': 'Thất bại'
+      };
+      return statusMap[status] || status;
+    }
+
+    if (type === 'delivery') {
+      const statusMap = {
+        'ASSIGNED': 'Đã gán',
+        'EN_ROUTE': 'Đang giao',
+        'DROPPED': 'Đã giao',
+        'FAILED': 'Thất bại'
+      };
+      return statusMap[status] || status;
+    }
+
+    if (type === 'drone') {
+      const statusMap = {
+        'IDLE': 'Rảnh',
+        'BUSY': 'Đang bận',
+        'DISPATCHING': 'Đang điều phối',
+        'EN_ROUTE': 'Đang giao',
+        'RETURNING': 'Đang quay về',
+        'INACTIVE': 'Không hoạt động'
+      };
+      return statusMap[status] || status;
+    }
+
+    if (type === 'payment') {
+      const statusMap = {
+        'SUCCESS': 'Thành công',
+        'FAILED': 'Thất bại',
+        'PENDING': 'Chờ xử lý'
+      };
+      return statusMap[status] || status;
+    }
+
+    if (type === 'user') {
+      return status === '1' || status === 1 || status === 'active' ? 'Hoạt động' : 'Vô hiệu hóa';
+    }
+
+    return status;
+  };
+
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getColorClasses()}`}>
-      {status}
+      {getStatusLabel()}
     </span>
   );
 }
