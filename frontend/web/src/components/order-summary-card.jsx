@@ -12,24 +12,30 @@ export function OrderSummaryCard({
   status,
   itemCount,
 }) {
+  // Handle undefined values with defaults
+  const displayTotal = total || 0
+  const displayItemCount = itemCount || 0
+  const displayRestaurant = restaurant || 'N/A'
+  const displayDate = date || 'N/A'
+  
   return (
     <Card className="overflow-hidden transition-all hover:shadow-lg">
       <CardContent className="p-4">
         <div className="flex gap-4">
           <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg">
-            <img src={restaurantImage || "/placeholder.svg"} alt={restaurant} className="w-full h-full object-cover" />
+            <img src={restaurantImage || "/placeholder.svg"} alt={displayRestaurant} className="w-full h-full object-cover" />
           </div>
           <div className="flex flex-1 flex-col">
             <div className="mb-2 flex items-start justify-between">
-              <h3 className="font-semibold text-foreground">{restaurant}</h3>
-              <p className="text-sm text-muted-foreground">{date}</p>
+              <h3 className="font-semibold text-foreground">{displayRestaurant}</h3>
+              <p className="text-sm text-muted-foreground">{displayDate}</p>
             </div>
             <DroneStatusBadge status={status} />
             <p className="mb-2 text-sm text-muted-foreground">
-              {itemCount} món • Mã: {id}
+              {displayItemCount} món • Mã: {id}
             </p>
             <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-primary">{total.toLocaleString("vi-VN")}₫</span>
+              <span className="text-lg font-bold text-primary">{displayTotal.toLocaleString("vi-VN")}₫</span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild>
                   <Link to={`/orders/${id}`}>Chi tiết</Link>

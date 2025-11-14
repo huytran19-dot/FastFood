@@ -1,49 +1,53 @@
+import { useState, useEffect } from "react"
 import { OrderSummaryCard } from "@/components/order-summary-card"
 import { EmptyState } from "@/components/empty-state"
 import { Package } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-// Mock orders data
-const orders = [
-  {
-    id: "FD-000123",
-    date: "Hôm nay, 14:30",
-    restaurant: "Fast Burger Drone",
-    restaurantImage: "/delicious-burger-restaurant.jpg",
-    total: 203000,
-    status: "DELIVERING",
-    itemCount: 3,
-  },
-  {
-    id: "FD-000122",
-    date: "Hôm qua, 19:15",
-    restaurant: "Pizza Express",
-    restaurantImage: "/italian-pizza-restaurant.jpg",
-    total: 350000,
-    status: "COMPLETED",
-    itemCount: 2,
-  },
-  {
-    id: "FD-000121",
-    date: "2 ngày trước, 12:00",
-    restaurant: "Phở Hà Nội",
-    restaurantImage: "/vietnamese-pho-restaurant.png",
-    total: 120000,
-    status: "COMPLETED",
-    itemCount: 2,
-  },
-  {
-    id: "FD-000120",
-    date: "3 ngày trước, 18:45",
-    restaurant: "Sushi Tokyo",
-    restaurantImage: "/japanese-sushi-restaurant.png",
-    total: 450000,
-    status: "COMPLETED",
-    itemCount: 5,
-  },
-]
+import { orderAPI } from "@/lib/api"
 
 export default function OrdersPage() {
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchOrders()
+  }, [])
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true)
+      const response = await orderAPI.getOrders()
+      // Map API data to component format
+      const mappedOrders = (response.orders || []).map(order => ({
+        id: order.id,
+        date: order.created_at ? new Date(order.created_at).toLocaleDateString('vi-VN') : 'N/A',
+        restaurant: order.restaurant?.name || 'N/A',
+        restaurantImage: order.restaurant?.image_url || "/placeholder.svg",
+        total: order.total_price || 0,
+        status: order.status || 'PENDING',
+        itemCount: order.items_count || 0
+      }))
+      setOrders(mappedOrders)
+    } catch (error) {
+      console.error('Error fetching orders:', error)
+      setOrders([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-6">
+          <h1 className="mb-6 text-2xl font-bold text-foreground md:text-3xl">Đơn hàng của tôi</h1>
+          <div className="flex items-center justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
   const activeOrders = orders.filter((order) =>
     ["PENDING", "PAID", "PREPARING", "READY_FOR_DELIVERY", "DELIVERING"].includes(order.status),
   )
@@ -69,7 +73,7 @@ export default function OrdersPage() {
                 action={{ label: "Đặt món ngay", href: "/" }}
               />
             ) : (
-              <div className="space-y:4">
+              <div className="space-y-4">
                 {activeOrders.map((order) => (
                   <OrderSummaryCard key={order.id} {...order} />
                 ))}
@@ -86,7 +90,7 @@ export default function OrdersPage() {
                 action={{ label: "Đặt món ngay", href: "/" }}
               />
             ) : (
-              <div className="space-y:4">
+              <div className="space-y-4">
                 {completedOrders.map((order) => (
                   <OrderSummaryCard key={order.id} {...order} />
                 ))}
