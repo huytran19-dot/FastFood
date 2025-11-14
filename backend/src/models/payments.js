@@ -26,7 +26,7 @@ class payments extends Sequelize.Model {
       allowNull: false
     },
     method: {
-      type: DataTypes.ENUM('COD','VNPAY','MOMO','BANK_TRANSFER'),
+      type: DataTypes.ENUM('COD','BANK_TRANSFER'),
       allowNull: true
     },
     transaction_no: {

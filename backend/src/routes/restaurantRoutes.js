@@ -24,4 +24,30 @@ router.put('/mine', restaurantControllers.updateMyRestaurant);
 // GET /api/restaurants/stats - Get restaurant statistics
 router.get('/stats', restaurantControllers.getRestaurantStats);
 
+// Orders management
+// GET /api/restaurant/orders - Get all orders for restaurant
+router.get('/orders', restaurantControllers.getRestaurantOrders);
+
+// GET /api/restaurant/orders/:id - Get order detail
+router.get('/orders/:id', restaurantControllers.getRestaurantOrderDetail);
+
+// PUT /api/restaurant/orders/:id/status - Update order status
+router.put('/orders/:id/status', restaurantControllers.updateOrderStatus);
+
+// Drone management
+// GET /api/restaurant/drones - Get available drones
+router.get('/drones', restaurantControllers.getAvailableDrones);
+
+// POST /api/restaurant/orders/:id/assign-drone - Assign order to drone
+router.post('/orders/:id/assign-drone', restaurantControllers.assignOrderToDrone);
+
+// POST /api/restaurant/orders/:id/start-delivery - Start drone delivery
+router.post('/orders/:id/start-delivery', restaurantControllers.startDelivery);
+
+// GET /api/restaurant/drones/:id/position - Get real-time drone position
+router.get('/drones/:id/position', restaurantControllers.getDronePosition);
+
+// GET /api/restaurant/orders/:id/distance - Get distance from drone to destination
+router.get('/orders/:id/distance', restaurantControllers.getOrderDistance);
+
 module.exports = router;

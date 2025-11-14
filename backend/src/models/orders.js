@@ -28,6 +28,14 @@ class orders extends Sequelize.Model {
         key: 'id'
       }
     },
+    drone_id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: 'drones',
+        key: 'id'
+      }
+    },
     total_price: {
       type: DataTypes.DECIMAL(10,2),
       allowNull: false
@@ -86,6 +94,13 @@ class orders extends Sequelize.Model {
         using: "BTREE",
         fields: [
           { name: "restaurant_id" },
+        ]
+      },
+      {
+        name: "idx_orders_drone",
+        using: "BTREE",
+        fields: [
+          { name: "drone_id" },
         ]
       },
       {

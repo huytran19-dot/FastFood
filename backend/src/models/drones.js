@@ -14,7 +14,7 @@ class drones extends Sequelize.Model {
     },
     restaurant_id: {
       type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: false,
+      allowNull: true, // Changed to true - NULL means available for all restaurants
       references: {
         model: 'restaurants',
         key: 'id'
