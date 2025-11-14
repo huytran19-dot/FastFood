@@ -1,43 +1,60 @@
+import { useState, useEffect } from "react"
 import { ChevronLeft, Phone, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { OrderTimeline } from "@/components/order-timeline"
 import { DroneMapPlaceholder } from "@/components/drone-map-placeholder"
 import { DroneStatusBadge } from "@/components/drone-status-badge"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useParams } from "react-router-dom"
-
-// Mock order data
-const order = {
-  id: "FD-000123",
-  status: "DELIVERING",
-  restaurant: {
-    name: "Fast Burger Drone",
-    phone: "0909 000 111",
-  },
-  items: [
-    {
-      id: "1",
-      name: "Burger Bò Phô Mai",
-      quantity: 2,
-      price: 89000,
-      image: "/burger-cheese.jpg",
-    },
-    {
-      id: "4",
-      name: "Trà Đào",
-      quantity: 1,
-      price: 25000,
-      image: "/peach-tea.jpg",
-    },
-  ],
-  address: "12 Nguyễn Huệ, Quận 1, TP.HCM",
-  estimatedTime: "15-20 phút",
-  total: 203000,
-}
+import { orderAPI } from "@/lib/api"
 
 export default function TrackingPage() {
   const { orderId } = useParams()
+  const navigate = useNavigate()
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchOrderDetail()
+  }, [orderId])
+
+  const fetchOrderDetail = async () => {
+    try {
+      setLoading(true)
+      const data = await orderAPI.getOrderDetail(orderId)
+      setOrder(data)
+    } catch (error) {
+      console.error('Error fetching order detail:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Không tìm thấy đơn hàng</p>
+            <Button className="mt-4" onClick={() => navigate('/orders')}>Quay lại</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">

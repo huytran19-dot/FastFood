@@ -154,6 +154,14 @@ class restaurants extends Sequelize.Model {
           { name: "lng" },
         ]
       },
+      {
+        name: "idx_coordinates",
+        using: "BTREE",
+        fields: [
+          { name: "lat" },
+          { name: "lng" },
+        ]
+      },
     ]
   });
   }

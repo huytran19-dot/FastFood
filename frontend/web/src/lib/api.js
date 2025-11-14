@@ -99,19 +99,7 @@ export const publicAPI = {
   },
 };
 
-// Mock user database (in a real app, this would be on the server)
-const MOCK_USERS = [
-  {
-    id: 1,
-    email: 'demo@example.com',
-    password: 'password123',
-    name: 'Demo User',
-    phone: '+1234567890',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo'
-  }
-];
-
-// Mock API functions
+// API functions
 export const authAPI = {
   // Register new user (with email verification)
   async register(userData) {
