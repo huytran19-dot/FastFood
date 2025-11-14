@@ -62,7 +62,7 @@ class orders extends Sequelize.Model {
       defaultValue: 15000
     },
     status: {
-      type: DataTypes.ENUM('PENDING','CONFIRMED','PREPARING','DELIVERING','COMPLETED','CANCELLED'),
+      type: DataTypes.ENUM('PENDING','CONFIRMED','PREPARING','READY','DELIVERING','COMPLETED','CANCELLED'),
       allowNull: false,
       defaultValue: "PENDING"
     }

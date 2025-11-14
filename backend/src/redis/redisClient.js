@@ -9,6 +9,16 @@ let isConnected = false;
 
 async function initRedis() {
   try {
+    // Check if redis module is installed first
+    try {
+      require.resolve('redis');
+    } catch (e) {
+      // Redis module not installed, silently skip
+      console.log('ℹ️  Redis module not installed, using in-memory cache');
+      isConnected = false;
+      return;
+    }
+
     const redis = require('redis');
     const REDIS_HOST = process.env.REDIS_HOST || '127.0.0.1';
     const REDIS_PORT = process.env.REDIS_PORT || 6379;
@@ -83,7 +93,10 @@ async function initRedis() {
       });
     }
   } catch (error) {
-    console.warn('⚠️ Redis not available, continuing without Redis:', error.message);
+    // Only log if it's not a module not found error
+    if (!error.message.includes('Cannot find module')) {
+      console.warn('⚠️ Redis initialization error:', error.message);
+    }
     isConnected = false;
   }
 }

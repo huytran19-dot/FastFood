@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react"
-import { ChevronLeft, Banknote, MapPin } from "lucide-react"
+import { ChevronLeft, CreditCard, Wallet, Banknote, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { useNavigate } from "react-router-dom"
 import { Link } from "react-router-dom"
 import { useCart } from "@/contexts/CartContext"
 import { useAuth } from "@/contexts/AuthContext"
-import AddressMapPicker from "@/components/map/AddressMapPicker"
-import AddressAutocomplete from "@/components/ui/address-autocomplete"
-import { orderAPI, cartAPI } from "@/lib/api"
+import { orderAPI } from "@/lib/api"
+import LocationPickerWithAddress from "@/components/map/LocationPickerWithAddress"
 
 export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("cod")
@@ -21,13 +21,12 @@ export default function CheckoutPage() {
     fullName: "",
     phone: "",
     address: "",
-    note: "",
-    lat: null,
-    lng: null
+    note: ""
   })
+  const [location, setLocation] = useState({ lat: 10.762622, lng: 106.660172 }) // Default: TP.HCM
   const { toast } = useToast()
   const navigate = useNavigate()
-  const { cart, clearCart, refreshCart } = useCart()
+  const { cart, clearCart } = useCart()
   const { user, isAuthenticated } = useAuth()
 
   useEffect(() => {
@@ -80,33 +79,6 @@ export default function CheckoutPage() {
       return
     }
 
-    // Kiểm tra giỏ hàng từ server trước khi đặt hàng
-    console.log('===== CHECKOUT DEBUG =====');
-    console.log('Cart in state:', cart);
-    
-    try {
-      const serverCart = await cartAPI.getCart();
-      console.log('Cart from server:', serverCart);
-      
-      if (!serverCart || !serverCart.items || serverCart.items.length === 0) {
-        toast({
-          title: "Giỏ hàng trống",
-          description: "Vui lòng thêm món vào giỏ hàng trước khi thanh toán",
-          variant: "destructive"
-        })
-        // Refresh cart state
-        await refreshCart();
-        return
-      }
-    } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể kiểm tra giỏ hàng. Vui lòng thử lại",
-        variant: "destructive"
-      })
-      return
-    }
-
     if (cart.items.length === 0) {
       toast({
         title: "Giỏ hàng trống",
@@ -131,6 +103,15 @@ export default function CheckoutPage() {
     setIsProcessing(true)
 
     try {
+      // Map payment method từ UI sang backend
+      const paymentMethodMap = {
+        'wallet': 'VNPAY',
+        'card': 'VNPAY', 
+        'cod': 'COD'
+      }
+
+      const mappedPaymentMethod = paymentMethodMap[paymentMethod] || 'COD'
+
       // Gọi API tạo đơn hàng
       const orderData = {
         restaurant_id: firstItem.restaurant_id,
@@ -138,12 +119,20 @@ export default function CheckoutPage() {
         delivery_phone: deliveryInfo.phone,
         delivery_name: deliveryInfo.fullName,
         note: deliveryInfo.note,
-        payment_method: 'COD'
+        payment_method: mappedPaymentMethod
       }
 
       const result = await orderAPI.createOrder(orderData)
       
-      // Hiển thị thông báo và chuyển đến trang orders
+      // Nếu thanh toán VNPay, chuyển đến trang thanh toán
+      if (result.payment_url) {
+        // Không clear cart ngay vì user có thể hủy thanh toán VNPay
+        window.location.href = result.payment_url
+        return
+      }
+
+      // Nếu thanh toán COD, clear cart và chuyển đến trang orders
+      clearCart() // Xóa giỏ hàng sau khi đặt hàng thành công
       setIsProcessing(false)
       toast({
         title: "Đặt hàng thành công!",
@@ -210,42 +199,35 @@ export default function CheckoutPage() {
                     </div>
                     <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="address">Địa chỉ chi tiết</Label>
-                      <AddressAutocomplete
+                      <Textarea
+                        id="address"
+                        placeholder="VD: 123 Lê Lợi, Quận 1, TP.HCM"
                         value={deliveryInfo.address}
                         onChange={(e) => setDeliveryInfo({...deliveryInfo, address: e.target.value})}
-                        onSelectAddress={(address, lat, lng) => {
-                          setDeliveryInfo(prev => ({
-                            ...prev,
-                            address,
-                            lat,
-                            lng
-                          }))
-                        }}
-                        placeholder="VD: 123 Lê Lợi, Quận 1, TP.HCM"
+                        required
                       />
-                      <p className="text-xs text-muted-foreground">
-                        💡 Nhập ít nhất 3 ký tự để xem gợi ý địa chỉ
+                      <p className="text-xs text-muted-foreground mt-1">
+                        💡 Nhấp vào bản đồ để tự tư chọn vị trí xem gợi ý địa chỉ
                       </p>
                     </div>
+                    
+                    {/* Map Location Picker */}
                     <div className="space-y-2 sm:col-span-2">
                       <Label>Chọn vị trí trên bản đồ</Label>
-                      <AddressMapPicker 
-                        lat={deliveryInfo.lat}
-                        lng={deliveryInfo.lng}
-                        onLocationSelect={(lat, lng, address) => {
-                          setDeliveryInfo(prev => ({
-                            ...prev,
-                            lat,
-                            lng,
-                            address: address || prev.address
-                          }))
-                        }}
-                        height="250px"
-                      />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground mb-2">
                         💡 Chọn chính xác vị trí để drone giao hàng đúng địa điểm
                       </p>
+                      <LocationPickerWithAddress
+                        onLocationSelect={(coords, address) => {
+                          setLocation(coords)
+                          if (address && !deliveryInfo.address) {
+                            setDeliveryInfo({...deliveryInfo, address: address})
+                          }
+                        }}
+                        initialLocation={location}
+                      />
                     </div>
+                    
                     <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="note">Ghi chú đơn hàng</Label>
                       <Textarea
@@ -265,13 +247,35 @@ export default function CheckoutPage() {
                   <CardTitle>Phương thức thanh toán</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center space-x-3 rounded-lg border border-border bg-muted/50 p-4">
-                    <Banknote className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="font-medium">Tiền mặt (COD)</div>
-                      <div className="text-sm text-muted-foreground">Thanh toán khi nhận hàng</div>
+                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <div className="mb-3 flex items-center space-x-3 rounded-lg border border-border p-4">
+                      <RadioGroupItem value="wallet" id="wallet" />
+                      <Label
+                        htmlFor="wallet"
+                        className="flex flex-1 cursor-pointer items-center gap-3"
+                      >
+                        <Wallet className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">Ví điện tử</div>
+                          <div className="text-sm text-muted-foreground"> VNPay</div>
+                        </div>
+                      </Label>
                     </div>
-                  </div>
+
+                    <div className="flex items-center space-x-3 rounded-lg border border-border p-4">
+                      <RadioGroupItem value="cod" id="cod" />
+                      <Label
+                        htmlFor="cod"
+                        className="flex flex-1 cursor-pointer items-center gap-3"
+                      >
+                        <Banknote className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">Tiền mặt</div>
+                          <div className="text-sm text-muted-foreground">Thanh toán khi nhận hàng</div>
+                        </div>
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 </CardContent>
               </Card>
             </div>

@@ -12,6 +12,11 @@ export default function CartPage() {
   const { cart, updateQuantity, removeItem, loading } = useCart()
   const { toast } = useToast()
 
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
+
   const handleUpdateQuantity = async (cartItemId, quantity) => {
     const q = Math.max(1, Number(quantity) || 1)
     await updateQuantity(cartItemId, q)

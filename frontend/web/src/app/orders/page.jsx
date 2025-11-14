@@ -10,6 +10,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Scroll to top khi vào trang
+    window.scrollTo(0, 0)
     fetchOrders()
   }, [])
 
@@ -49,9 +51,10 @@ export default function OrdersPage() {
     )
   }
   const activeOrders = orders.filter((order) =>
-    ["PENDING", "PAID", "PREPARING", "READY_FOR_DELIVERY", "DELIVERING"].includes(order.status),
+    ["PENDING", "CONFIRMED", "PREPARING", "READY_FOR_DELIVERY", "DELIVERING"].includes(order.status),
   )
   const completedOrders = orders.filter((order) => order.status === "COMPLETED")
+  const cancelledOrders = orders.filter((order) => order.status === "CANCELLED")
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,6 +65,7 @@ export default function OrdersPage() {
           <TabsList className="w-full justify-start">
             <TabsTrigger value="active">Đang xử lý ({activeOrders.length})</TabsTrigger>
             <TabsTrigger value="completed">Đã hoàn thành ({completedOrders.length})</TabsTrigger>
+            <TabsTrigger value="cancelled">Đã hủy ({cancelledOrders.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="mt-6">
@@ -92,6 +96,23 @@ export default function OrdersPage() {
             ) : (
               <div className="space-y-4">
                 {completedOrders.map((order) => (
+                  <OrderSummaryCard key={order.id} {...order} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="cancelled" className="mt-6">
+            {cancelledOrders.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="Chưa có đơn hàng nào bị hủy"
+                description="Bạn chưa có đơn hàng nào bị hủy"
+                action={{ label: "Đặt món ngay", href: "/" }}
+              />
+            ) : (
+              <div className="space-y-4">
+                {cancelledOrders.map((order) => (
                   <OrderSummaryCard key={order.id} {...order} />
                 ))}
               </div>

@@ -7,7 +7,7 @@ export default function PaymentReturnPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { refreshCart } = useCart()
+  const { refreshCart, clearCart } = useCart()
   const [isProcessing, setIsProcessing] = useState(true)
 
   useEffect(() => {
@@ -26,13 +26,13 @@ export default function PaymentReturnPage() {
       console.log("Transaction No:", transactionNo)
 
       if (status === "success") {
-        // Refresh cart (backend đã xóa rồi)
-        console.log("🛒 Refreshing cart...")
+        // Clear cart sau khi thanh toán thành công
+        console.log("🛒 Clearing cart after successful payment...")
         try {
-          await refreshCart()
-          console.log("✅ Cart refreshed successfully!")
+          clearCart() // Xóa giỏ hàng
+          console.log("✅ Cart cleared successfully!")
         } catch (err) {
-          console.error("❌ Failed to refresh cart:", err)
+          console.error("❌ Failed to clear cart:", err)
         }
 
         // Ẩn loading screen trước
@@ -60,20 +60,22 @@ export default function PaymentReturnPage() {
 
         // Hiển thị toast lỗi với thông tin chi tiết
         toast({
-          title: "❌ Thanh toán thất bại",
-          description: message || "Vui lòng thử lại hoặc liên hệ hỗ trợ.",
+          title: "❌ Đơn hàng đã bị hủy",
+          description: `Thanh toán thất bại!\n${message || "Giao dịch không thành công."}\nĐơn hàng đã bị hủy.`,
           variant: "destructive",
+          duration: 6000,
         })
 
-        // Redirect về trang checkout sau 3 giây
+        // Redirect về trang chủ sau 3 giây
         setTimeout(() => {
-          navigate("/checkout")
+          navigate("/")
         }, 3000)
       }
     }
 
     handlePaymentReturn()
-  }, [refreshCart, searchParams, toast, navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Chỉ chạy 1 lần khi component mount
 
   // Hiển thị loading trong khi xử lý
   if (isProcessing) {
@@ -112,9 +114,13 @@ export default function PaymentReturnPage() {
         <h2 className="text-2xl font-bold text-foreground mb-2">
           {searchParams.get("status") === "success"
             ? "Thanh toán thành công!"
-            : "Thanh toán thất bại"}
+            : "Đơn hàng đã bị hủy"}
         </h2>
-        <p className="text-muted-foreground text-sm">Đang chuyển hướng...</p>
+        <p className="text-muted-foreground text-sm">
+          {searchParams.get("status") === "success" 
+            ? "Đang chuyển đến trang đơn hàng..." 
+            : "Đang quay về trang chủ..."}
+        </p>
       </div>
     </div>
   )

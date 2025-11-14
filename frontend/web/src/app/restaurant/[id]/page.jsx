@@ -25,6 +25,8 @@ export default function RestaurantPage() {
   useEffect(() => {
     if (id) {
       fetchRestaurantData()
+      // Scroll to top when entering restaurant page
+      window.scrollTo(0, 0)
     }
   }, [id])
 

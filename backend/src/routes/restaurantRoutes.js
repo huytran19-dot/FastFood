@@ -34,6 +34,9 @@ router.get('/orders/:id', restaurantControllers.getRestaurantOrderDetail);
 // PUT /api/restaurant/orders/:id/status - Update order status
 router.put('/orders/:id/status', restaurantControllers.updateOrderStatus);
 
+// PATCH /api/restaurant/orders/:id/status - Update order status (alternative)
+router.patch('/orders/:id/status', restaurantControllers.updateOrderStatus);
+
 // Drone management
 // GET /api/restaurant/drones - Get available drones
 router.get('/drones', restaurantControllers.getAvailableDrones);
