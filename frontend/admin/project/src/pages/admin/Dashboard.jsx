@@ -112,14 +112,14 @@ export function AdminDashboard() {
         <div className="bg-white rounded-2xl shadow-md p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Đơn hàng theo ngày</h2>
           <div className="h-64 flex items-center justify-center text-gray-500">
-            Biểu đồ cột (mock data)
+            Biểu đồ cột
           </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-md p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Doanh thu theo nhà hàng</h2>
           <div className="h-64 flex items-center justify-center text-gray-500">
-            Biểu đồ tròn (mock data)
+            Biểu đồ tròn
           </div>
         </div>
       </div>
