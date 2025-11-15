@@ -375,8 +375,9 @@ exports.getRestaurantOrders = async (req, res) => {
     // Map backend status to frontend status
     const statusMap = {
       'PENDING': 'pending',
-      'CONFIRMED': 'ready', // CONFIRMED maps to ready (sẵn sàng giao)
+      'CONFIRMED': 'confirmed',
       'PREPARING': 'preparing',
+      'READY': 'ready',
       'DELIVERING': 'delivering',
       'WAITING_OTP': 'waiting_otp',
       'COMPLETED': 'completed',
@@ -406,6 +407,7 @@ exports.getRestaurantOrders = async (req, res) => {
         'PREPARING': 'PREPARING',
         'READY': 'READY',
         'DELIVERING': 'DELIVERING',
+        'WAITING_OTP': 'WAITING_OTP',
         'COMPLETED': 'COMPLETED',
         'CANCELLED': 'CANCELLED'
       };

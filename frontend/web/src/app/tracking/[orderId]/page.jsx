@@ -225,7 +225,7 @@ export default function TrackingPage() {
                 ) : (
                   <div className="h-64 flex flex-col items-center justify-center bg-muted/30 rounded-lg border border-border">
                     <p className="text-muted-foreground text-sm mb-2">
-                      {order.status === 'PENDING' || order.status === 'CONFIRMED' || order.status === 'PREPARING' 
+                      {order.status === 'PENDING' || order.status === 'CONFIRMED' || order.status === 'PREPARING' || order.status === 'READY'
                         ? '🍳 Đang chuẩn bị đơn hàng...' 
                         : '📍 Đang tải bản đồ...'}
                     </p>
@@ -260,22 +260,61 @@ export default function TrackingPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className={`flex items-center gap-3 ${['PENDING', 'PREPARING', 'CONFIRMED', 'DELIVERING', 'WAITING_OTP', 'COMPLETED'].includes(order.status) ? 'text-green-600' : 'text-muted-foreground'}`}>
+                  {/* Pending */}
+                  <div className={`flex items-center gap-3 ${['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERING', 'WAITING_OTP', 'COMPLETED'].includes(order.status) ? 'text-green-600' : 'text-muted-foreground'}`}>
                     <div className="h-3 w-3 rounded-full bg-current" />
-                    <p className="font-medium">Đơn hàng đã được xác nhận</p>
+                    <div className="flex-1">
+                      <p className="font-medium">Đơn hàng đã được tạo</p>
+                      {order.payment?.method === 'VNPAY' && order.status === 'PENDING' && (
+                        <p className="text-xs text-orange-600">Chờ thanh toán VNPay...</p>
+                      )}
+                    </div>
                   </div>
-                  <div className={`flex items-center gap-3 ${['PREPARING', 'CONFIRMED', 'DELIVERING', 'WAITING_OTP', 'COMPLETED'].includes(order.status) ? 'text-green-600' : 'text-muted-foreground'}`}>
+                  
+                  {/* Payment Success (for VNPay) */}
+                  {order.payment?.method === 'VNPAY' && (
+                    <div className={`flex items-center gap-3 ${order.payment?.status === 'PAID' || ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERING', 'WAITING_OTP', 'COMPLETED'].includes(order.status) ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      <div className="h-3 w-3 rounded-full bg-current" />
+                      <div className="flex-1">
+                        <p className="font-medium">Đã thanh toán qua VNPay</p>
+                        {order.payment?.status === 'PAID' && (
+                          <p className="text-xs">Đơn hàng tự động được xác nhận</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Confirmed */}
+                  <div className={`flex items-center gap-3 ${['CONFIRMED', 'PREPARING', 'READY', 'DELIVERING', 'WAITING_OTP', 'COMPLETED'].includes(order.status) ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    <div className="h-3 w-3 rounded-full bg-current" />
+                    <p className="font-medium">Nhà hàng đã xác nhận</p>
+                  </div>
+                  
+                  {/* Preparing */}
+                  <div className={`flex items-center gap-3 ${['PREPARING', 'READY', 'DELIVERING', 'WAITING_OTP', 'COMPLETED'].includes(order.status) ? 'text-green-600' : 'text-muted-foreground'}`}>
                     <div className="h-3 w-3 rounded-full bg-current" />
                     <p className="font-medium">Đang chuẩn bị món ăn</p>
                   </div>
+                  
+                  {/* Ready */}
+                  <div className={`flex items-center gap-3 ${['READY', 'DELIVERING', 'WAITING_OTP', 'COMPLETED'].includes(order.status) ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    <div className="h-3 w-3 rounded-full bg-current" />
+                    <p className="font-medium">Sẵn sàng giao hàng</p>
+                  </div>
+                  
+                  {/* Delivering */}
                   <div className={`flex items-center gap-3 ${['DELIVERING', 'WAITING_OTP', 'COMPLETED'].includes(order.status) ? 'text-green-600' : 'text-muted-foreground'}`}>
                     <div className="h-3 w-3 rounded-full bg-current" />
                     <p className="font-medium">Drone đang giao hàng</p>
                   </div>
+                  
+                  {/* Waiting OTP */}
                   <div className={`flex items-center gap-3 ${['WAITING_OTP', 'COMPLETED'].includes(order.status) ? 'text-green-600' : 'text-muted-foreground'}`}>
                     <div className="h-3 w-3 rounded-full bg-current" />
-                    <p className="font-medium">Drone đã đến nơi</p>
+                    <p className="font-medium">Drone đã đến nơi - Chờ xác nhận OTP</p>
                   </div>
+                  
+                  {/* Completed */}
                   <div className={`flex items-center gap-3 ${order.status === 'COMPLETED' ? 'text-green-600' : 'text-muted-foreground'}`}>
                     <div className="h-3 w-3 rounded-full bg-current" />
                     <p className="font-medium">Đã giao hàng thành công</p>

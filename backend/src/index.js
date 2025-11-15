@@ -1,7 +1,7 @@
 ﻿const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-require('dotenv').config();
+require('dotenv').config(); // Force reload env vars
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');

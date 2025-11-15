@@ -295,9 +295,10 @@ class OrderService {
     const validTransitions = {
       'PENDING': ['CONFIRMED', 'CANCELLED'],
       'CONFIRMED': ['PREPARING', 'CANCELLED'],
-      'PREPARING': ['READY'],
-      'READY': ['DELIVERING'],
-      'DELIVERING': ['COMPLETED'],
+      'PREPARING': ['READY', 'CANCELLED'],
+      'READY': ['DELIVERING', 'CANCELLED'],
+      'DELIVERING': ['WAITING_OTP', 'COMPLETED'],
+      'WAITING_OTP': ['COMPLETED'],
       'COMPLETED': [],
       'CANCELLED': []
     };

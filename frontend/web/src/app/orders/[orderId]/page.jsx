@@ -82,13 +82,14 @@ export default function OrderDetailPage() {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      pending: { label: 'Chờ xử lý', variant: 'warning', icon: Clock },
-      confirmed: { label: 'Đã xác nhận', variant: 'default', icon: CheckCircle },
-      preparing: { label: 'Đang chuẩn bị', variant: 'default', icon: Package },
-      ready: { label: 'Sẵn sàng', variant: 'default', icon: CheckCircle },
-      delivering: { label: 'Đang giao', variant: 'default', icon: Package },
-      delivered: { label: 'Đã giao', variant: 'success', icon: CheckCircle },
-      cancelled: { label: 'Đã hủy', variant: 'destructive', icon: XCircle },
+      PENDING: { label: 'Chờ xác nhận', variant: 'warning', icon: Clock },
+      CONFIRMED: { label: 'Đã xác nhận', variant: 'default', icon: CheckCircle },
+      PREPARING: { label: 'Đang chuẩn bị', variant: 'default', icon: Package },
+      READY: { label: 'Sẵn sàng giao', variant: 'default', icon: CheckCircle },
+      DELIVERING: { label: 'Đang giao', variant: 'default', icon: Package },
+      WAITING_OTP: { label: 'Chờ xác nhận', variant: 'warning', icon: Clock },
+      COMPLETED: { label: 'Đã giao', variant: 'success', icon: CheckCircle },
+      CANCELLED: { label: 'Đã hủy', variant: 'destructive', icon: XCircle },
     }
 
     const config = statusConfig[status] || statusConfig.pending
@@ -163,7 +164,7 @@ export default function OrderDetailPage() {
     )
   }
 
-  const canCancelOrder = ['pending', 'confirmed'].includes(order.status)
+  const canCancelOrder = ['PENDING', 'CONFIRMED'].includes(order.status)
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
@@ -305,13 +306,25 @@ export default function OrderDetailPage() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Phương thức</span>
               <span className="font-medium">
-                {order.payment?.method === 'COD' ? 'Tiền mặt (COD)' : order.payment?.method || 'Tiền mặt'}
+                {order.payment?.method === 'COD' ? 'Tiền mặt (COD)' : 
+                 order.payment?.method === 'VNPAY' ? 'VNPay' : 
+                 order.payment?.method || 'Tiền mặt'}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Trạng thái</span>
+              <span className="text-muted-foreground">Trạng thái thanh toán</span>
               {getPaymentStatusBadge(order.payment?.status)}
             </div>
+            {order.payment?.method === 'VNPAY' && order.payment?.status === 'PAID' && (
+              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                ✓ Đã thanh toán qua VNPay - Đơn hàng được tự động xác nhận
+              </div>
+            )}
+            {order.payment?.method === 'COD' && (
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                💵 Thanh toán khi nhận hàng
+              </div>
+            )}
           </CardContent>
         </Card>
 

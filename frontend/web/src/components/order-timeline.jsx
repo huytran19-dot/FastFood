@@ -1,12 +1,13 @@
-import { Check, Clock, ChefHat, Package, Plane, CheckCircle2, XCircle } from "lucide-react"
+import { Check, Clock, ChefHat, Package, Plane, CheckCircle2, XCircle, Key } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const statusSteps = [
   { status: "PENDING", label: "Chờ xác nhận", icon: Clock },
-  { status: "PAID", label: "Đã thanh toán", icon: Check },
+  { status: "CONFIRMED", label: "Đã xác nhận", icon: Check },
   { status: "PREPARING", label: "Đang chuẩn bị", icon: ChefHat },
-  { status: "READY_FOR_DELIVERY", label: "Sẵn sàng giao", icon: Package },
+  { status: "READY", label: "Sẵn sàng giao", icon: Package },
   { status: "DELIVERING", label: "Đang giao hàng", icon: Plane },
+  { status: "WAITING_OTP", label: "Chờ xác nhận", icon: Key },
   { status: "COMPLETED", label: "Hoàn thành", icon: CheckCircle2 },
 ]
 

@@ -123,8 +123,7 @@ export default function OrdersPage() {
     )
   }
   const activeOrders = orders.filter((order) =>
-    ["PENDING", "CONFIRMED", "PAID", "PREPARING", "READY", "READY_FOR_DELIVERY", "DELIVERING", "WAITING_OTP"].includes(order.status),
-    ["PENDING", "CONFIRMED", "PREPARING", "READY_FOR_DELIVERY", "DELIVERING"].includes(order.status),
+    ["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERING", "WAITING_OTP"].includes(order.status),
   )
   const completedOrders = orders.filter((order) => order.status === "COMPLETED")
   const cancelledOrders = orders.filter((order) => order.status === "CANCELLED")

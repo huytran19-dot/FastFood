@@ -53,6 +53,12 @@ const statusConfig = {
     icon: Truck,
     badgeColor: 'bg-orange-500'
   },
+  WAITING_OTP: {
+    label: 'Chờ xác nhận OTP',
+    color: 'bg-amber-100 text-amber-800',
+    icon: Clock,
+    badgeColor: 'bg-amber-500'
+  },
   COMPLETED: {
     label: 'Hoàn thành',
     color: 'bg-green-100 text-green-800',

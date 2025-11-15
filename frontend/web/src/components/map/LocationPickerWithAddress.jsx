@@ -63,7 +63,7 @@ export default function LocationPickerWithAddress({
     if (initialLat && initialLng) {
       markerRef.current = L.marker([initialLat, initialLng], { draggable: true })
         .addTo(map)
-        .bindPopup('📍 Vị trí nhà hàng')
+        .bindPopup('📍 Vị trí giao hàng')
         .openPopup();
 
       setupMarkerEvents();
@@ -99,7 +99,7 @@ export default function LocationPickerWithAddress({
     } else {
       markerRef.current = L.marker([lat, lng], { draggable: true })
         .addTo(mapRef.current)
-        .bindPopup('📍 Vị trí nhà hàng')
+        .bindPopup('📍 Vị trí giao hàng')
         .openPopup();
 
       setupMarkerEvents();
@@ -224,7 +224,7 @@ export default function LocationPickerWithAddress({
         } else {
           markerRef.current = L.marker([lat, lng], { draggable: true })
             .addTo(mapRef.current)
-            .bindPopup('📍 Vị trí hiện tại')
+            .bindPopup('📍 Vị trí giao hàng')
             .openPopup();
 
           setupMarkerEvents();
@@ -287,7 +287,7 @@ export default function LocationPickerWithAddress({
             value={address}
             onChange={handleAddressChange}
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-            placeholder="Nhập địa chỉ nhà hàng (VD: 123 Lý Thường Kiệt, Quận 1)"
+            placeholder="Nhập địa chỉ giao hàng (VD: 123 Lý Thường Kiệt, Quận 1)"
             className="pl-10 pr-4"
             autoComplete="off"
           />
