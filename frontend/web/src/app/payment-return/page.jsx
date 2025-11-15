@@ -19,9 +19,7 @@ export default function PaymentReturnPage() {
       const transactionNo = searchParams.get("transactionNo")
       const message = searchParams.get("message")
 
-      console.log("========== PAYMENT RETURN ==========")
-      console.log("Status:", status)
-      console.log("Order ID:", orderId)
+
       console.log("Amount:", amount)
       console.log("Transaction No:", transactionNo)
 

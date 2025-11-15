@@ -3,10 +3,8 @@ const publicService = require('../services/publicServices');
 // Lấy danh sách nhà hàng đã approved
 const getRestaurants = async (req, res) => {
   try {
-    console.log('🏪 [Public] Fetching approved restaurants...');
     const restaurants = await publicService.getApprovedRestaurants();
     
-    console.log(`✅ [Public] Found ${restaurants.length} approved restaurants`);
     res.status(200).json({
       success: true,
       data: restaurants
@@ -25,11 +23,9 @@ const getRestaurants = async (req, res) => {
 const getRestaurantById = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(`🏪 [Public] Fetching restaurant ${id}...`);
     
     const restaurant = await publicService.getRestaurantById(id);
     
-    console.log(`✅ [Public] Found restaurant: ${restaurant.name}`);
     res.status(200).json({
       success: true,
       data: restaurant
@@ -56,11 +52,9 @@ const getRestaurantById = async (req, res) => {
 const getRestaurantMenu = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(`📋 [Public] Fetching menu for restaurant ${id}...`);
     
     const data = await publicService.getRestaurantMenu(id);
     
-    console.log(`✅ [Public] Found ${data.menuItems.length} menu items for ${data.restaurant.name}`);
     res.status(200).json({
       success: true,
       data
@@ -87,11 +81,9 @@ const getRestaurantMenu = async (req, res) => {
 const getRestaurantCategories = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(`🏷️ [Public] Fetching categories for restaurant ${id}...`);
     
     const categories = await publicService.getRestaurantCategories(id);
     
-    console.log(`✅ [Public] Found ${categories.length} categories`);
     res.status(200).json({
       success: true,
       data: categories

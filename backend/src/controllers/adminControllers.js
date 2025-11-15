@@ -121,14 +121,7 @@ exports.getAllRestaurants = async (req, res) => {
     // Transform restaurants to include owner info
     const restaurantsWithOwner = restaurants.map(restaurant => {
       const restaurantData = restaurant.toJSON();
-      
-      // Debug logging
-      if (!restaurantData.owner) {
-        console.warn('⚠️ [Admin Restaurants] Restaurant', restaurantData.id, 'has no owner. owner_id:', restaurantData.owner_id);
-      } else {
-        console.log('✅ [Admin Restaurants] Restaurant', restaurantData.id, 'owner:', restaurantData.owner.email);
-      }
-      
+
       return {
         restaurant_id: restaurantData.id,
         owner_id: restaurantData.owner_id,

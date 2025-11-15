@@ -8,17 +8,30 @@ import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import {
   ArrowLeft,
-  Package,
-  MapPin,
-  Clock,
-  CreditCard,
-  Phone,
-  User,
-  Store,
   AlertCircle,
   CheckCircle,
   XCircle,
+  Clock,
+  Package,
 } from 'lucide-react'
+
+// Helper function to remove coordinates from address for display
+const removeCoordinatesFromAddress = (address) => {
+  if (!address) return 'N/A';
+  const parts = address.split(',');
+  if (parts.length < 2) return address;
+  
+  // Check if last two parts are coordinates
+  const lat = parseFloat(parts[parts.length - 2].trim());
+  const lng = parseFloat(parts[parts.length - 1].trim());
+  
+  if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+    // Remove last two parts (coordinates)
+    return parts.slice(0, -2).join(',').trim();
+  }
+  
+  return address;
+}
 
 export default function OrderDetailPage() {
   const { orderId } = useParams()
@@ -184,21 +197,16 @@ export default function OrderDetailPage() {
         {order.restaurant && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5" />
-                Nhà hàng
-              </CardTitle>
+              <CardTitle>Nhà hàng</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <p className="font-semibold">{order.restaurant.name}</p>
-                <p className="text-sm text-muted-foreground flex items-start gap-2">
-                  <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-muted-foreground">
                   {order.restaurant.address}
                 </p>
                 {order.restaurant.phone && (
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
+                  <p className="text-sm text-muted-foreground">
                     {order.restaurant.phone}
                   </p>
                 )}
@@ -210,31 +218,25 @@ export default function OrderDetailPage() {
         {/* Delivery Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Thông tin giao hàng
-            </CardTitle>
+            <CardTitle>Thông tin giao hàng</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Người nhận</p>
-              <p className="font-semibold flex items-center gap-2">
-                <User className="h-4 w-4" />
+              <p className="font-semibold">
                 {order.delivery?.name || order.user?.full_name || 'N/A'}
               </p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Số điện thoại</p>
-              <p className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
+              <p>
                 {order.delivery?.phone || order.user?.phone || 'N/A'}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Địa chỉ giao hàng</p>
-              <p className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                {order.delivery?.address || 'N/A'}
+              <p className="text-sm font-medium text-muted-foreground mb-1">Địa chễ giao hàng</p>
+              <p>
+                {removeCoordinatesFromAddress(order.delivery?.address)}
               </p>
             </div>
             {order.note && (
@@ -249,10 +251,7 @@ export default function OrderDetailPage() {
         {/* Order Items */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Chi tiết đơn hàng
-            </CardTitle>
+            <CardTitle>Chi tiết đơn hàng</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -300,10 +299,7 @@ export default function OrderDetailPage() {
         {/* Payment Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Thanh toán
-            </CardTitle>
+            <CardTitle>Thanh toán</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between items-center">

@@ -1,6 +1,19 @@
 const db = require('../models');
 const { orders, order_items, payments, menu_items, restaurants } = db;
 
+// Haversine formula to calculate distance between two coordinates (in km)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+  return distance;
+}
+
 class OrderService {
   // Tạo đơn hàng mới
   async createOrder(userId, orderData) {
@@ -22,6 +35,45 @@ class OrderService {
       // Validate items
       if (!items || items.length === 0) {
         throw new Error('Đơn hàng phải có ít nhất 1 món');
+      }
+
+      // Get restaurant to calculate distance
+      const restaurant = await restaurants.findByPk(restaurant_id);
+      if (!restaurant) {
+        throw new Error('Không tìm thấy nhà hàng');
+      }
+
+      // Parse coordinates from delivery_address (format: "address, lat, lng")
+      let customerLat = null;
+      let customerLng = null;
+      let calculatedDistance = null;
+
+      const addressParts = delivery_address.split(',');
+      if (addressParts.length >= 2) {
+        const lastTwo = addressParts.slice(-2);
+        const potentialLat = parseFloat(lastTwo[0].trim());
+        const potentialLng = parseFloat(lastTwo[1].trim());
+        
+        if (!isNaN(potentialLat) && !isNaN(potentialLng) && 
+            potentialLat >= -90 && potentialLat <= 90 && 
+            potentialLng >= -180 && potentialLng <= 180) {
+          customerLat = potentialLat;
+          customerLng = potentialLng;
+
+          // Calculate distance if restaurant has coordinates
+          if (restaurant.lat && restaurant.lng) {
+            calculatedDistance = calculateDistance(
+              parseFloat(restaurant.lat),
+              parseFloat(restaurant.lng),
+              customerLat,
+              customerLng
+            );
+          }
+        }
+      }
+
+      if (!customerLat || !customerLng) {
+        // Could not parse coordinates from delivery_address
       }
 
       // Tạo order
@@ -89,7 +141,7 @@ class OrderService {
         {
           model: restaurants,
           as: 'restaurant',
-          attributes: ['id', 'name', 'address', 'phone']
+          attributes: ['id', 'name', 'address', 'phone', 'lat', 'lng']
         },
         {
           model: payments,

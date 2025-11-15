@@ -1,18 +1,90 @@
 import { useState, useEffect } from "react"
+import { io } from "socket.io-client"
 import { OrderSummaryCard } from "@/components/order-summary-card"
 import { EmptyState } from "@/components/empty-state"
 import { Package } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { orderAPI } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   useEffect(() => {
     // Scroll to top khi vào trang
     window.scrollTo(0, 0)
     fetchOrders()
+
+    // Setup Socket.IO for real-time order updates
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+
+    });
+
+    // Listen for order updates
+    socket.on('order:update', (data) => {
+
+      
+      // Update order in list or refresh
+      setOrders(prevOrders => {
+        const orderExists = prevOrders.some(order => order.id === data.orderId);
+        
+        if (orderExists) {
+          // Update existing order
+          const updatedOrders = prevOrders.map(order => {
+            if (order.id === data.orderId) {
+              return {
+                ...order,
+                status: data.status || order.status
+              };
+            }
+            return order;
+          });
+
+          // Show toast for status update
+          if (data.message) {
+            toast({
+              title: '📦 Cập nhật đơn hàng',
+              description: data.message,
+              duration: 3000,
+            });
+          }
+
+          return updatedOrders;
+        } else {
+          // New order created, refresh list and show notification
+          toast({
+            title: '🎉 Đơn hàng mới!',
+            description: 'Đơn hàng của bạn đã được tạo thành công',
+            duration: 5000,
+          });
+          fetchOrders();
+          return prevOrders;
+        }
+      });
+    });
+
+    socket.on('disconnect', () => {
+
+    });
+
+    // Auto refresh every 30 seconds to ensure we don't miss any orders
+    const refreshInterval = setInterval(() => {
+
+      fetchOrders();
+    }, 30000);
+
+    return () => {
+      socket.disconnect();
+      clearInterval(refreshInterval);
+    };
   }, [])
 
   const fetchOrders = async () => {
@@ -51,6 +123,7 @@ export default function OrdersPage() {
     )
   }
   const activeOrders = orders.filter((order) =>
+    ["PENDING", "CONFIRMED", "PAID", "PREPARING", "READY", "READY_FOR_DELIVERY", "DELIVERING", "WAITING_OTP"].includes(order.status),
     ["PENDING", "CONFIRMED", "PREPARING", "READY_FOR_DELIVERY", "DELIVERING"].includes(order.status),
   )
   const completedOrders = orders.filter((order) => order.status === "COMPLETED")

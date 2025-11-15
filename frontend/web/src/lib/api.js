@@ -513,6 +513,7 @@ export const orderAPI = {
         throw new Error(data.message || 'Lỗi khi lấy chi tiết đơn hàng');
       }
 
+
       return data.data;
     } catch (error) {
       console.error('❌ Error fetching order detail:', error);
@@ -540,6 +541,31 @@ export const orderAPI = {
       return data.data;
     } catch (error) {
       console.error('❌ Error cancelling order:', error);
+      throw error;
+    }
+  },
+
+  // Xác nhận OTP khi nhận hàng
+  async verifyOTP(orderId, otp) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders/${orderId}/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ otp }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Mã OTP không đúng');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('❌ Error verifying OTP:', error);
       throw error;
     }
   },

@@ -172,12 +172,6 @@ class DroneService {
     // Set with 1 hour expiration
     const result = await setJson(key, value, 3600);
     
-    if (result) {
-      console.log(`✅ [DroneService] Saved position to Redis: ${key}`, value);
-    } else {
-      console.warn(`⚠️ [DroneService] Failed to save position to Redis: ${key} (Redis may not be available)`);
-    }
-    
     return result;
   }
 
@@ -189,12 +183,6 @@ class DroneService {
   async getDronePosition(droneId) {
     const key = `drone:${droneId}:position`;
     const position = await getJson(key);
-    
-    if (position) {
-      console.log(`✅ [DroneService] Retrieved position from Redis: ${key}`, position);
-    } else {
-      console.warn(`⚠️ [DroneService] No position found in Redis: ${key} (Drone may not have started or Redis not available)`);
-    }
     
     return position;
   }

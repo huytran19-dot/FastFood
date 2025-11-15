@@ -30,12 +30,6 @@ class CartController {
     try {
       const cart = await cartService.getOrCreateCart(req.user.id);
       
-      console.log('===== GET CART DEBUG =====');
-      console.log('User ID:', req.user.id);
-      console.log('Cart ID:', cart?.id);
-      console.log('Raw cart_items:', cart?.cart_items);
-      console.log('Items count:', cart?.cart_items?.length || 0);
-      
       res.json({
         success: true,
         data: formatCartResponse(cart)

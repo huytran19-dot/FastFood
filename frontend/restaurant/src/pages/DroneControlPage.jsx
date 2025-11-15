@@ -1,27 +1,24 @@
 import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import { 
-  Radio,
   Package,
   CheckCircle,
   Clock,
-  MapPin,
-  User,
-  Phone,
-  ShoppingBag,
-  Calendar,
   Search,
   Send,
   AlertCircle,
-  Play,
-  Map
+  Play
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import Modal from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { orderAPI, droneAPI } from '@/lib/api';
+import { restaurantAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import DroneTrackingMap from '@/components/drone/DroneTrackingMap';
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 const statusConfig = {
   ready: {
@@ -38,12 +35,70 @@ const statusConfig = {
     label: 'Đang chuẩn bị',
     color: 'bg-blue-100 text-blue-800',
     icon: Package,
+  },
+  delivering: {
+    label: 'Đang giao',
+    color: 'bg-orange-100 text-orange-800',
+    icon: Send,
+  },
+  waiting_otp: {
+    label: 'Chờ OTP',
+    color: 'bg-yellow-100 text-yellow-800',
+    icon: Clock,
+  },
+  returning: {
+    label: 'Đang bay về',
+    color: 'bg-cyan-100 text-cyan-800',
+    icon: Send,
+  },
+  completed: {
+    label: 'Hoàn thành',
+    color: 'bg-green-100 text-green-800',
+    icon: CheckCircle,
   }
+};
+
+// Helper functions to parse customer coordinates from address (format: "address, lat, lng")
+const parseCustomerLat = (address) => {
+  if (!address) return null;
+  const parts = address.split(',');
+  if (parts.length < 2) return null;
+  const lat = parseFloat(parts[parts.length - 2].trim());
+  const isValid = !isNaN(lat) && lat >= -90 && lat <= 90;
+  return isValid ? lat : null;
+};
+
+const parseCustomerLng = (address) => {
+  if (!address) return null;
+  const parts = address.split(',');
+  if (parts.length < 2) return null;
+  const lng = parseFloat(parts[parts.length - 1].trim());
+  const isValid = !isNaN(lng) && lng >= -180 && lng <= 180;
+  return isValid ? lng : null;
+};
+
+// Helper function to remove coordinates from address for display
+const removeCoordinatesFromAddress = (address) => {
+  if (!address) return 'N/A';
+  const parts = address.split(',');
+  if (parts.length < 2) return address;
+  
+  // Check if last two parts are coordinates
+  const lat = parseFloat(parts[parts.length - 2].trim());
+  const lng = parseFloat(parts[parts.length - 1].trim());
+  
+  if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+    // Remove last two parts (coordinates)
+    return parts.slice(0, -2).join(',').trim();
+  }
+  
+  return address;
 };
 
 export default function DroneControlPage() {
   const [drones, setDrones] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [restaurantInfo, setRestaurantInfo] = useState(null); // Restaurant coordinates
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -53,23 +108,118 @@ export default function DroneControlPage() {
   const [orderDistances, setOrderDistances] = useState({}); // Order distances
   const { toast } = useToast();
 
+  // Setup Socket.IO for real-time updates
+  useEffect(() => {
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {});
+
+    // Listen for drone status updates (when drone is assigned)
+    socket.on('drone:status:update', (data) => {
+      // Update drone status in real-time
+      setDrones(prevDrones => {
+        const updated = prevDrones.map(drone => {
+          // Convert both to number for comparison to avoid type mismatch
+          if (Number(drone.id) === Number(data.droneId)) {
+            return { ...drone, status: data.status };
+          }
+          return drone;
+        });
+        return updated;
+      });
+
+      // Show toast notification
+      if (data.status === 'assigned') {
+        toast({
+          title: '✅ Đã gán drone',
+          description: `${data.model} đã được gán cho đơn #${data.orderNumber}`,
+          duration: 3000,
+        });
+      }
+    });
+
+    // Listen for order updates
+    socket.on('order:update', (data) => {
+      // Update orders list
+      setOrders(prevOrders => {
+        return prevOrders.map(order => {
+          if (order.id === data.orderId || order.id === parseInt(data.orderId)) {
+            // Update order with new status
+            const updatedOrder = { ...order };
+            
+            if (data.status === 'DELIVERING' && data.delivery_otp) {
+              updatedOrder.status = 'delivering';
+              updatedOrder.delivery_otp = data.delivery_otp;
+              
+              // Show toast notification with OTP
+              toast({
+                title: '🚁 Drone đang bay!',
+                description: `Đơn #${order.id} - Mã OTP: ${data.delivery_otp}`,
+                duration: 10000,
+              });
+            } else if (data.status === 'WAITING_OTP') {
+              updatedOrder.status = 'waiting_otp';
+              updatedOrder.delivery_otp = data.delivery_otp;
+              
+              // Show toast notification with OTP
+              toast({
+                title: '🎯 Drone đã đến!',
+                description: `Đơn #${order.id} - Mã OTP: ${data.delivery_otp}`,
+                duration: 10000,
+              });
+            } else if (data.status === 'COMPLETED' && data.droneStatus === 'returning') {
+              updatedOrder.status = 'returning';
+            } else if (data.status === 'COMPLETED' && data.droneStatus === 'idle') {
+              updatedOrder.status = 'completed';
+              
+              // Show completion notification
+              toast({
+                title: '✅ Drone đã bay về',
+                description: `Đơn #${order.id} hoàn thành - Drone đã về nhà hàng`,
+                duration: 5000,
+              });
+            } else if (data.status === 'DELIVERING') {
+              updatedOrder.status = 'delivering';
+            }
+            
+            return updatedOrder;
+          }
+          return order;
+        });
+      });
+    });
+
+    socket.on('disconnect', () => {});
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [toast]);
+
   // Fetch drones and orders
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [dronesData, ordersData] = await Promise.all([
+      const [dronesData, ordersData, restaurantData] = await Promise.all([
         droneAPI.getAvailableDrones(),
-        orderAPI.getAll('all')
+        orderAPI.getAll('all'),
+        restaurantAPI.getMine()
       ]);
       
       setDrones(dronesData.drones || []);
       
-      // Filter orders that are ready for delivery or already assigned
-      // Show both 'ready' (chưa gán) and 'assigned' (đã gán) orders
-      const assignableOrders = (ordersData.orders || []).filter(order => 
-        order.status === 'ready' || order.status === 'assigned'
+      // API returns restaurant directly, not wrapped in {restaurant: ...}
+      const restaurant = restaurantData || null;
+      setRestaurantInfo(restaurant);
+      
+      // Filter orders that are ready for delivery or in delivery process
+      const deliverableOrders = (ordersData.orders || []).filter(order => 
+        ['ready', 'assigned', 'delivering', 'waiting_otp', 'returning'].includes(order.status)
       );
-      setOrders(assignableOrders);
+      
+      setOrders(deliverableOrders);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -131,7 +281,9 @@ export default function DroneControlPage() {
       setIsAssignModalOpen(false);
       setSelectedOrder(null);
       setSelectedDroneId('');
-      fetchData(); // Refresh data
+      
+      // Refresh data immediately to get updated status from DB
+      fetchData();
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -143,11 +295,23 @@ export default function DroneControlPage() {
 
   const handleStartDelivery = async (order) => {
     try {
-      await droneAPI.startDelivery(order.id);
+      const response = await droneAPI.startDelivery(order.id);
+      
+      // Update order in state with OTP from response
+      if (response.data?.delivery_otp) {
+        setOrders(prevOrders => 
+          prevOrders.map(o => 
+            o.id === order.id 
+              ? { ...o, status: 'delivering', delivery_otp: response.data.delivery_otp }
+              : o
+          )
+        );
+      }
+      
       toast({
         variant: 'default',
         title: 'Thành công',
-        description: 'Đã bắt đầu giao hàng',
+        description: `Đã bắt đầu giao hàng - OTP: ${response.data?.delivery_otp || 'N/A'}`,
       });
       
       // Add to tracking orders
@@ -201,10 +365,7 @@ export default function DroneControlPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="mb-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Radio className="h-5 w-5 text-green-600" />
-              Drone Có Sẵn
-            </h2>
+            <h2 className="text-xl font-semibold">Drone Có Sẵn</h2>
           </div>
           {loading ? (
             <div className="text-center py-16">
@@ -218,27 +379,36 @@ export default function DroneControlPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {drones.map(drone => (
-                <div 
-                  key={drone.drone_id} 
-                  className="border-2 border-green-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-lg text-gray-900">{drone.model}</h3>
-                      <div className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium whitespace-nowrap">
-                        Rảnh
+              {drones.map(drone => {
+                // Map status to Vietnamese display
+                const statusMap = {
+                  'idle': { text: 'Rảnh', color: 'bg-green-100 text-green-700' },
+                  'assigned': { text: 'Đã gán đơn', color: 'bg-blue-100 text-blue-700' },
+                  'delivering': { text: 'Đang giao', color: 'bg-orange-100 text-orange-700' },
+                  'waiting_otp': { text: 'Chờ OTP', color: 'bg-purple-100 text-purple-700' },
+                  'returning': { text: 'Đang về', color: 'bg-yellow-100 text-yellow-700' }
+                };
+                const droneStatus = statusMap[drone.status] || statusMap['idle'];
+
+                return (
+                  <div 
+                    key={drone.id} 
+                    className="border-2 border-green-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-lg text-gray-900">{drone.model}</h3>
+                        <div className={`px-2 py-1 ${droneStatus.color} rounded-full text-xs font-medium whitespace-nowrap`}>
+                          {droneStatus.text}
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-gray-500" />
+                      <div className="text-sm text-gray-600">
                         <span>Sức chứa: <strong>{drone.capacity} kg</strong></span>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -298,11 +468,6 @@ export default function DroneControlPage() {
                       {/* Header Row */}
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          <div className="flex-shrink-0">
-                            <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center">
-                              <ShoppingBag className="h-6 w-6 text-orange-600" />
-                            </div>
-                          </div>
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="font-bold text-lg">#{order.id}</h3>
@@ -311,8 +476,7 @@ export default function DroneControlPage() {
                                 {statusInfo.label}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                              <Calendar className="h-4 w-4" />
+                            <div className="text-sm text-gray-600 mt-1">
                               <span>{formatTime(order.orderTime)}</span>
                             </div>
                           </div>
@@ -326,28 +490,24 @@ export default function DroneControlPage() {
                       {/* Customer Info */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <User className="h-4 w-4 text-gray-500" />
+                          <div className="text-sm">
                             <span className="font-medium">Khách hàng:</span>
-                            <span>{order.customerName || 'N/A'}</span>
+                            <span className="ml-2">{order.customerName || 'N/A'}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-4 w-4 text-gray-500" />
+                          <div className="text-sm">
                             <span className="font-medium">SĐT:</span>
-                            <span>{order.customerPhone || 'N/A'}</span>
+                            <span className="ml-2">{order.customerPhone || 'N/A'}</span>
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <MapPin className="h-4 w-4 text-gray-500" />
+                          <div className="text-sm">
                             <span className="font-medium">Địa chỉ:</span>
-                            <span className="truncate">{order.customerAddress || order.deliveryAddress || 'N/A'}</span>
+                            <span className="ml-2 truncate">{removeCoordinatesFromAddress(order.customerAddress || order.deliveryAddress)}</span>
                           </div>
                           {order.drone_model && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <Radio className="h-4 w-4 text-green-600" />
+                            <div className="text-sm">
                               <span className="font-medium">Drone:</span>
-                              <span className="text-green-700 font-semibold">{order.drone_model}</span>
+                              <span className="ml-2 text-green-700 font-semibold">{order.drone_model}</span>
                             </div>
                           )}
                         </div>
@@ -355,32 +515,73 @@ export default function DroneControlPage() {
 
                       {/* Drone Tracking Map - Show if order has drone assigned */}
                       {order.drone_id && (
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Map className="h-5 w-5 text-blue-600" />
-                            <h4 className="font-semibold text-gray-900">
-                              {trackingOrders.has(order.id) ? 'Theo dõi Drone Real-time' : 'Bản đồ Drone'}
-                            </h4>
+                          <div className="bg-gradient-to-br from-blue-50 to-gray-50 rounded-lg p-4 border border-blue-100">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h4 className="font-semibold text-gray-900">
+                                {trackingOrders.has(order.id) ? '🛰️ Theo dõi Real-time' : '📍 Bản đồ Drone'}
+                              </h4>
+                            </div>
+                            {trackingOrders.has(order.id) && (
+                              <div className="flex items-center gap-2 px-3 py-1 bg-green-100 border border-green-300 rounded-full">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-xs font-semibold text-green-700">Đang bay</span>
+                              </div>
+                            )}
                           </div>
                           <DroneTrackingMap
                             key={`map-${order.id}-${trackingOrders.has(order.id)}`}
                             droneId={order.drone_id}
                             orderId={order.id}
                             onDistanceUpdate={(distance) => handleDistanceUpdate(order.id, distance)}
-                            destinationLat={10.8231} // TODO: Get from order/restaurant coordinates
-                            destinationLng={106.6297}
+                            restaurantLat={restaurantInfo?.lat ? Number(restaurantInfo.lat) : null}
+                            restaurantLng={restaurantInfo?.lng ? Number(restaurantInfo.lng) : null}
+                            destinationLat={
+                              parseCustomerLat(order.customerAddress) || 
+                              (restaurantInfo?.lat ? Number(restaurantInfo.lat) + 0.008 : 10.8231)
+                            }
+                            destinationLng={
+                              parseCustomerLng(order.customerAddress) || 
+                              (restaurantInfo?.lng ? Number(restaurantInfo.lng) + 0.008 : 106.6297)
+                            }
                             autoStart={trackingOrders.has(order.id)}
                           />
-                          {orderDistances[order.id] !== undefined && (
-                            <div className="mt-2 text-sm font-semibold text-orange-600">
-                              Khoảng cách còn lại: {orderDistances[order.id].toFixed(2)} km
-                            </div>
-                          )}
                         </div>
                       )}
 
                       {/* Action Buttons */}
                       <div className="flex items-center justify-end gap-3 flex-wrap">
+                        {/* Waiting OTP - Show OTP code and verify button */}
+                        {order.status === 'waiting_otp' && order.delivery_otp && (
+                          <div className="px-6 py-3 bg-yellow-100 border-2 border-yellow-400 rounded-lg">
+                            <div className="text-xs text-yellow-700 font-medium mb-1">Mã OTP giao hàng:</div>
+                            <div className="text-2xl font-bold text-yellow-900 tracking-widest">{order.delivery_otp}</div>
+                            <div className="text-xs text-yellow-700 mt-2">⏳ Chờ khách hàng xác nhận...</div>
+                          </div>
+                        )}
+                        
+                        {/* Delivering - Show status */}
+                        {order.status === 'delivering' && (
+                          <div className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium animate-pulse">
+                            🚁 Drone đang bay đến khách hàng...
+                          </div>
+                        )}
+                        
+                        {/* Returning - Show status */}
+                        {order.status === 'returning' && (
+                          <div className="px-4 py-2 bg-cyan-100 text-cyan-700 rounded-lg text-sm font-medium">
+                            🔄 Drone đang bay về nhà hàng...
+                          </div>
+                        )}
+                        
+                        {/* Completed - Show status */}
+                        {order.status === 'completed' && (
+                          <div className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
+                            ✅ Đã hoàn thành - Drone đã về
+                          </div>
+                        )}
+                        
+                        {/* Assigned - Show assign info and start button */}
                         {order.status === 'assigned' && order.drone_model && (
                           <div className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
                             ✓ Đã gán cho {order.drone_model}
@@ -395,13 +596,28 @@ export default function DroneControlPage() {
                             Bắt đầu bay
                           </Button>
                         )}
-                        <Button
-                          onClick={() => handleOpenAssignModal(order)}
-                          className={`${order.status === 'assigned' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} text-white`}
-                        >
-                          <Send className="h-4 w-4 mr-2" />
-                          {order.status === 'assigned' ? 'Đổi Drone' : 'Gán Drone'}
-                        </Button>
+                        
+                        {/* Ready orders can assign drone */}
+                        {order.status === 'ready' && (
+                          <Button
+                            onClick={() => handleOpenAssignModal(order)}
+                            className="bg-orange-500 hover:bg-orange-600 text-white"
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Gán Drone
+                          </Button>
+                        )}
+                        
+                        {/* Assigned orders can change drone */}
+                        {order.status === 'assigned' && (
+                          <Button
+                            onClick={() => handleOpenAssignModal(order)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white"
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Đổi Drone
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -435,7 +651,7 @@ export default function DroneControlPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Địa chỉ giao:</span>
-                <span className="font-medium text-right">{selectedOrder.customerAddress || selectedOrder.deliveryAddress || 'N/A'}</span>
+                <span className="font-medium text-right">{removeCoordinatesFromAddress(selectedOrder.customerAddress || selectedOrder.deliveryAddress)}</span>
               </div>
             </div>
 
@@ -448,11 +664,16 @@ export default function DroneControlPage() {
                   <SelectValue placeholder="Chọn drone để gán đơn hàng" />
                 </SelectTrigger>
                 <SelectContent>
-                  {drones.map(drone => (
-                    <SelectItem key={drone.drone_id} value={String(drone.drone_id)}>
-                      {drone.model} - Sức chứa: {drone.capacity}kg
+                  {drones.filter(drone => drone.status === 'idle').map(drone => (
+                    <SelectItem key={drone.id} value={String(drone.id)}>
+                      {drone.model} - Sức chứa: {drone.capacity}kg - Rảnh
                     </SelectItem>
                   ))}
+                  {drones.filter(drone => drone.status === 'idle').length === 0 && (
+                    <div className="px-2 py-4 text-center text-sm text-gray-500">
+                      Hiện không có drone rảnh. Vui lòng đợi...
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -481,6 +702,7 @@ export default function DroneControlPage() {
           </div>
         )}
       </Modal>
+
     </div>
   );
 }

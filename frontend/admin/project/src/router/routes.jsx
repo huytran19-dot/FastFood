@@ -9,7 +9,6 @@ import { AdminDashboard } from '../pages/admin/Dashboard';
 import { AdminUsers } from '../pages/admin/Users';
 import { AdminRestaurants } from '../pages/admin/Restaurants';
 import { AdminOrders } from '../pages/admin/Orders';
-import { AdminPayments } from '../pages/admin/Payments';
 import { AdminDrones } from '../pages/admin/Drones';
 
 export function AppRouter() {
@@ -31,7 +30,6 @@ export function AppRouter() {
                       <Route path="users" element={<AdminUsers />} />
                       <Route path="restaurants" element={<AdminRestaurants />} />
                       <Route path="orders" element={<AdminOrders />} />
-                      <Route path="payments" element={<AdminPayments />} />
                       <Route path="drones" element={<AdminDrones />} />
                     </Routes>
                   </AppShell>

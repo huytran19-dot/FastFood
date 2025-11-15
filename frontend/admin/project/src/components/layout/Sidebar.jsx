@@ -4,7 +4,6 @@ import {
   Users,
   Store,
   ShoppingBag,
-  CreditCard,
   Plane,
   TruckIcon,
   BarChart3,
@@ -25,7 +24,6 @@ export function Sidebar() {
     { to: '/admin/users', icon: Users, label: 'Người dùng' },
     { to: '/admin/restaurants', icon: Store, label: 'Nhà hàng' },
     { to: '/admin/orders', icon: ShoppingBag, label: 'Đơn hàng' },
-    { to: '/admin/payments', icon: CreditCard, label: 'Thanh toán' },
     { to: '/admin/drones', icon: Plane, label: 'Drone' }
   ];
 

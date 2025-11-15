@@ -1,6 +1,7 @@
 const db = require('../models');
 const droneService = require('../services/droneServices');
-const droneSimulator = require('../services/droneSimulator');
+const droneSimulationServiceV2 = require('../services/droneSimulationServiceV2');
+const { emitOrderUpdate, emitDroneStatusUpdate, emitDroneUpdate, getIO } = require('../socket/socketServer');
 
 // POST /api/restaurants - Create new restaurant
 exports.createRestaurant = async (req, res) => {
@@ -34,8 +35,6 @@ exports.createRestaurant = async (req, res) => {
     }
 
     // Create restaurant
-    console.log('🏪 [Create Restaurant] User ID:', req.user.id, 'Email:', req.user.email);
-    
     const restaurant = await db.restaurants.create({
       name,
       description,
@@ -48,12 +47,6 @@ exports.createRestaurant = async (req, res) => {
       close_time,
       lat: lat || null,
       lng: lng || null
-    });
-
-    console.log('✅ [Create Restaurant] Created:', {
-      id: restaurant.id,
-      name: restaurant.name,
-      owner_id: restaurant.owner_id
     });
 
     res.status(201).json(restaurant);
@@ -141,8 +134,6 @@ exports.updateMyRestaurant = async (req, res) => {
 // GET /api/restaurants/stats - Get restaurant statistics
 exports.getRestaurantStats = async (req, res) => {
   try {
-    console.log('📊 [Stats] User:', req.user?.id, 'Role:', req.user?.role?.name);
-    
     if (!req.user) {
       return res.status(401).json({ message: 'Chưa đăng nhập' });
     }
@@ -152,14 +143,8 @@ exports.getRestaurantStats = async (req, res) => {
     });
 
     if (!restaurant) {
-      console.log('❌ [Stats] Restaurant not found for user:', req.user.id);
       return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
     }
-    
-    console.log('✅ [Stats] Found restaurant:', restaurant.id);
-
-    // Debug: Check available models
-    console.log('🔍 Available models:', Object.keys(db).filter(k => !['sequelize', 'Sequelize'].includes(k)));
 
     // Use correct model names from db
     const { orders, menu_items } = db;
@@ -343,6 +328,7 @@ exports.getRestaurantOrders = async (req, res) => {
       'preparing': 'PREPARING',
       'ready': 'READY',
       'delivering': 'DELIVERING',
+      'waiting_otp': 'WAITING_OTP',
       'completed': 'COMPLETED',
       'cancelled': 'CANCELLED'
     };
@@ -379,7 +365,7 @@ exports.getRestaurantOrders = async (req, res) => {
         {
           model: db.drones,
           as: 'drone',
-          attributes: ['id', 'model'],
+          attributes: ['id', 'model', 'status'],
           required: false
         }
       ],
@@ -392,6 +378,7 @@ exports.getRestaurantOrders = async (req, res) => {
       'CONFIRMED': 'ready', // CONFIRMED maps to ready (sẵn sàng giao)
       'PREPARING': 'preparing',
       'DELIVERING': 'delivering',
+      'WAITING_OTP': 'waiting_otp',
       'COMPLETED': 'completed',
       'CANCELLED': 'cancelled'
     };
@@ -400,6 +387,18 @@ exports.getRestaurantOrders = async (req, res) => {
     const formattedOrders = orders.map(order => {
       const orderData = order.toJSON();
       
+      // Determine display status
+      let displayStatus;
+      const hasDrone = !!orderData.drone_id;
+      
+      // Check if drone is returning (order COMPLETED but drone.status is 'returning')
+      if (orderData.status === 'COMPLETED' && orderData.drone?.status === 'returning') {
+        displayStatus = 'returning';
+      } else if (hasDrone && orderData.status === 'CONFIRMED') {
+        displayStatus = 'assigned';
+      } else {
+        displayStatus = statusMap[orderData.status] || orderData.status.toLowerCase();
+      }
       // Map backend status to frontend status (UPPERCASE)
       const statusMapping = {
         'PENDING': 'PENDING',
@@ -435,7 +434,8 @@ exports.getRestaurantOrders = async (req, res) => {
         payment_method: orderData.payment?.method,
         payment_status: orderData.payment?.status,
         drone_id: orderData.drone_id,
-        drone_model: orderData.drone?.model || null
+        drone_model: orderData.drone?.model || null,
+        delivery_otp: orderData.delivery_otp || null
       };
     });
 
@@ -639,20 +639,19 @@ exports.getAvailableDrones = async (req, res) => {
       order: [['id', 'ASC']]
     });
 
-    // Return all drones as available (same logic as admin dashboard)
+    // Return all drones with their actual status from database
     const formattedDrones = drones.map(drone => {
       const droneData = drone.toJSON();
       return {
-        drone_id: droneData.id,
+        id: droneData.id, // Use 'id' instead of 'drone_id' for consistency
         model: droneData.model,
         capacity: parseFloat(droneData.capacity),
         battery: parseFloat(droneData.battery),
-        status: 'IDLE',
-        is_available: true
+        status: droneData.status || 'idle', // Use actual status from DB
+        is_available: droneData.status === 'idle' || !droneData.status
       };
     });
 
-    console.log(`✅ [Restaurant Drones] Trả về ${formattedDrones.length} drones`);
     res.json({ drones: formattedDrones });
   } catch (error) {
     console.error('Get available drones error:', error);
@@ -668,6 +667,12 @@ exports.assignOrderToDrone = async (req, res) => {
 
     if (!drone_id) {
       return res.status(400).json({ message: 'Vui lòng chọn drone' });
+    }
+
+    // Parse drone_id to integer
+    const droneIdInt = parseInt(drone_id);
+    if (isNaN(droneIdInt)) {
+      return res.status(400).json({ message: 'ID drone không hợp lệ' });
     }
 
     // Get restaurant of current user
@@ -706,11 +711,18 @@ exports.assignOrderToDrone = async (req, res) => {
       });
     }
 
-    // Check if drone exists (all drones are available, no need to check busy status)
-    const drone = await db.drones.findByPk(drone_id);
+    // Check if drone exists
+    const drone = await db.drones.findByPk(droneIdInt);
 
     if (!drone) {
       return res.status(404).json({ message: 'Không tìm thấy drone' });
+    }
+
+    // Check if drone is already busy (assigned, delivering, waiting_otp, returning)
+    if (drone.status !== 'idle') {
+      return res.status(400).json({ 
+        message: `Drone ${drone.model} đang bận (${drone.status}). Vui lòng chọn drone khác có trạng thái "Rảnh".` 
+      });
     }
 
     // Check if order already has a delivery
@@ -721,7 +733,7 @@ exports.assignOrderToDrone = async (req, res) => {
     if (existingDelivery) {
       // Update existing delivery
       await existingDelivery.update({
-        drone_id,
+        drone_id: droneIdInt,
         status: 'ASSIGNED',
         start_location: order.restaurant?.address || null
       });
@@ -729,7 +741,7 @@ exports.assignOrderToDrone = async (req, res) => {
       // Create new delivery
       await db.deliveries.create({
         order_id,
-        drone_id,
+        drone_id: droneIdInt,
         status: 'ASSIGNED',
         start_location: order.restaurant?.address || null,
         end_location: order.delivery_address
@@ -738,15 +750,35 @@ exports.assignOrderToDrone = async (req, res) => {
 
     // Update order: set drone_id but keep status as CONFIRMED (đã gán đơn)
     await order.update({ 
-      drone_id
+      drone_id: droneIdInt
       // Keep status as CONFIRMED, don't change to DELIVERING
+    });
+
+    // Update drone status to 'assigned'
+    await drone.update({ status: 'assigned' });
+
+    // Emit socket event for real-time update
+    emitOrderUpdate(order_id, {
+      status: order.status,
+      drone_id: droneIdInt.toString(),
+      droneStatus: 'assigned',
+      droneModel: drone.model
+    });
+
+    // Emit drone status update for real-time drone list refresh
+    emitDroneStatusUpdate({
+      droneId: droneIdInt,
+      status: 'assigned',
+      orderId: order_id,
+      orderNumber: parseInt(order_id),
+      model: drone.model
     });
 
     res.json({
       message: 'Gán đơn hàng cho drone thành công',
       delivery: {
         order_id,
-        drone_id,
+        drone_id: droneIdInt,
         status: 'ASSIGNED'
       }
     });
@@ -794,7 +826,8 @@ exports.startDelivery = async (req, res) => {
     }
 
     // Check if simulation is already running
-    if (droneSimulator.isSimulationRunning(order.drone_id)) {
+    const currentState = droneSimulationServiceV2.getSimulationState(order.drone_id, orderId);
+    if (currentState && currentState.isRunning) {
       return res.status(400).json({ message: 'Drone đang trong quá trình giao hàng' });
     }
 
@@ -803,34 +836,77 @@ exports.startDelivery = async (req, res) => {
       return res.status(400).json({ message: 'Nhà hàng chưa có tọa độ. Vui lòng cập nhật vị trí nhà hàng.' });
     }
 
-    // Get delivery address coordinates (simplified - in production, use geocoding API)
-    // For now, we'll generate a simple route from restaurant to a nearby point
-    // In production, you should geocode the delivery_address to get lat/lng
-    const startLat = parseFloat(restaurant.lat);
-    const startLng = parseFloat(restaurant.lng);
-
-    // Generate route points (simplified - straight line with intermediate points)
-    // In production, use a routing service like OSRM or Google Directions API
-    const routePoints = generateRoutePoints(startLat, startLng, order.delivery_address);
-
-    // Start simulation
-    console.log(`🚀 [StartDelivery] Starting simulation for drone ${order.drone_id}, order ${orderId}`);
-    console.log(`🚀 [StartDelivery] Route points:`, routePoints.length, 'points');
+    // Parse customer coordinates from delivery_address (format: "address, lat, lng")
+    // In production, use geocoding API
+    let customerLat, customerLng;
+    const addressParts = order.delivery_address.split(',');
     
-    await droneSimulator.startDroneSimulation(
-      order.drone_id,
-      orderId,
-      routePoints,
-      {
-        intervalMs: 2000, // Update every 2 seconds
-        saveToDbEvery: 5 // Save to DB every 5 steps
+    if (addressParts.length >= 2) {
+      const lastTwo = addressParts.slice(-2);
+      const potentialLat = parseFloat(lastTwo[0].trim());
+      const potentialLng = parseFloat(lastTwo[1].trim());
+      
+      if (!isNaN(potentialLat) && !isNaN(potentialLng) && 
+          potentialLat >= -90 && potentialLat <= 90 && 
+          potentialLng >= -180 && potentialLng <= 180) {
+        customerLat = potentialLat;
+        customerLng = potentialLng;
       }
-    );
+    }
 
-    // Update order status to DELIVERING
-    await order.update({ status: 'DELIVERING' });
-    
-    console.log(`✅ [StartDelivery] Simulation started successfully for order ${orderId}`);
+    if (!customerLat || !customerLng) {
+      // Fallback: use a default location near the restaurant for demo
+      const restaurantLat = parseFloat(restaurant.lat);
+      const restaurantLng = parseFloat(restaurant.lng);
+      
+      // Create a destination ~1km away (roughly 0.01 degrees)
+      customerLat = restaurantLat + 0.008;
+      customerLng = restaurantLng + 0.008;
+    }
+
+    const restaurantLat = parseFloat(restaurant.lat);
+    const restaurantLng = parseFloat(restaurant.lng);
+
+    // Update drone status to 'delivering'
+    const drone = await db.drones.findByPk(order.drone_id);
+    if (drone) {
+      await drone.update({ status: 'delivering' });
+      
+      // Emit drone status update
+      emitDroneStatusUpdate({
+        droneId: order.drone_id,
+        status: 'delivering',
+        orderId: orderId,
+        orderNumber: order.id,
+        model: drone.model
+      });
+    }
+
+    // Start simulation using V2 service with OTP and Socket.IO
+    await droneSimulationServiceV2.startPhaseToCustomer({
+      droneId: order.drone_id,
+      orderId: orderId,
+      startLat: restaurantLat,
+      startLng: restaurantLng,
+      endLat: customerLat,
+      endLng: customerLng,
+      totalTimeMs: 20000, // 20 seconds flight time
+      onUpdate: (updatePayload) => {
+        // Emit drone position updates to all clients (including user tracking page)
+        emitDroneUpdate(order.drone_id, updatePayload);
+        
+        // Also emit to order room for customer tracking page
+        const io = getIO();
+        if (io) {
+          io.to(`order:${orderId}`).emit('drone:update', updatePayload);
+        }
+      }
+    });
+
+    // Get updated order with OTP
+    const updatedOrder = await db.orders.findByPk(orderId, {
+      attributes: ['id', 'delivery_otp']
+    });
 
     res.json({
       message: 'Đã bắt đầu giao hàng',
@@ -839,7 +915,7 @@ exports.startDelivery = async (req, res) => {
         drone_id: order.drone_id,
         drone_model: order.drone?.model,
         status: 'DELIVERING',
-        route_points_count: routePoints.length
+        delivery_otp: updatedOrder?.delivery_otp // Return OTP for display
       }
     });
   } catch (error) {

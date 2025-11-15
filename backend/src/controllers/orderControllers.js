@@ -1,5 +1,7 @@
 const orderService = require('../services/orderServices');
 const cartService = require('../services/cartServices');
+const droneService = require('../services/droneServices');
+const { emitOrderUpdate } = require('../socket/socketServer');
 const { createVNPayUrl, verifyVNPayReturn, vnpayResponseCodes } = require('../utils/vnpay');
 
 class OrderController {
@@ -71,6 +73,14 @@ class OrderController {
       // Clear giỏ hàng sau khi tạo đơn thành công
       await cartService.clearCart(req.user.id);
 
+      // Emit socket event for new order
+      emitOrderUpdate(order.id, {
+        status: order.status,
+        message: 'Đơn hàng mới đã được tạo',
+        customerId: req.user.id
+      });
+
+      // Chỉ hỗ trợ COD
       // Nếu thanh toán COD, trả về kết quả
       if (payment_method === 'COD') {
         return res.json({
@@ -231,43 +241,74 @@ class OrderController {
       const { id } = req.params;
       const order = await orderService.getOrderById(id, req.user.id);
 
+      // Parse delivery address coordinates (format: "address, lat, lng")
+      let deliveryLat = null;
+      let deliveryLng = null;
+      
+      if (order.delivery_address) {
+        const parts = order.delivery_address.split(',');
+        
+        if (parts.length >= 2) {
+          const lat = parseFloat(parts[parts.length - 2].trim());
+          const lng = parseFloat(parts[parts.length - 1].trim());
+          
+          // Validate coordinates
+          if (!isNaN(lat) && !isNaN(lng) && 
+              lat >= -90 && lat <= 90 && 
+              lng >= -180 && lng <= 180) {
+            deliveryLat = lat;
+            deliveryLng = lng;
+          }
+        }
+      }
+
+      const responseData = {
+        id: order.id,
+        restaurant: {
+          id: order.restaurant?.id,
+          name: order.restaurant?.name,
+          address: order.restaurant?.address,
+          phone: order.restaurant?.phone,
+          lat: order.restaurant?.lat ? parseFloat(order.restaurant.lat) : null,
+          lng: order.restaurant?.lng ? parseFloat(order.restaurant.lng) : null
+        },
+        items: order.order_items.map(item => ({
+          id: item.id,
+          menu_item_id: item.item_id,
+          name: item.item?.name,
+          description: item.item?.description,
+          price: parseFloat(item.price),
+          quantity: item.quantity,
+          image: item.item?.image_url,
+          subtotal: parseFloat(item.price) * item.quantity
+        })),
+        delivery: {
+          address: order.delivery_address,
+          phone: order.delivery_phone,
+          name: order.delivery_name,
+          fee: parseFloat(order.delivery_fee || 15000)
+        },
+        delivery_address_detail: deliveryLat && deliveryLng ? {
+          lat: deliveryLat,
+          lng: deliveryLng
+        } : null,
+        drone_id: order.drone_id,
+        note: order.note,
+        total_price: parseFloat(order.total_price),
+        status: order.status,
+        payment: {
+          method: order.payment?.method,
+          status: order.payment?.status,
+          amount: parseFloat(order.payment?.amount || 0)
+        },
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+        estimatedTime: '20-30 phút'
+      };
+
       res.json({
         success: true,
-        data: {
-          id: order.id,
-          restaurant: {
-            id: order.restaurant?.id,
-            name: order.restaurant?.name,
-            address: order.restaurant?.address,
-            phone: order.restaurant?.phone
-          },
-          items: order.order_items.map(item => ({
-            id: item.id,
-            menu_item_id: item.item_id,
-            name: item.item?.name,
-            description: item.item?.description,
-            price: parseFloat(item.price),
-            quantity: item.quantity,
-            image: item.item?.image_url,
-            subtotal: parseFloat(item.price) * item.quantity
-          })),
-          delivery: {
-            address: order.delivery_address,
-            phone: order.delivery_phone,
-            name: order.delivery_name,
-            fee: parseFloat(order.delivery_fee || 15000)
-          },
-          note: order.note,
-          total_price: parseFloat(order.total_price),
-          status: order.status,
-          payment: {
-            method: order.payment?.method,
-            status: order.payment?.status,
-            amount: parseFloat(order.payment?.amount || 0)
-          },
-          created_at: order.created_at,
-          updated_at: order.updated_at
-        }
+        data: responseData
       });
 
     } catch (error) {

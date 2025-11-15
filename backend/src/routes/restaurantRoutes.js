@@ -41,6 +41,9 @@ router.patch('/orders/:id/status', restaurantControllers.updateOrderStatus);
 // GET /api/restaurant/drones - Get available drones
 router.get('/drones', restaurantControllers.getAvailableDrones);
 
+// GET /api/restaurant/drones/available - Alias for getting available drones
+router.get('/drones/available', restaurantControllers.getAvailableDrones);
+
 // POST /api/restaurant/orders/:id/assign-drone - Assign order to drone
 router.post('/orders/:id/assign-drone', restaurantControllers.assignOrderToDrone);
 
