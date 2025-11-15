@@ -103,12 +103,6 @@ async function startDroneSimulation(droneId, orderId, routePoints, options = {})
         status: 'EN_ROUTE',
         ts: new Date().toISOString()
       });
-      
-      if (positionSaved) {
-        console.log(`📍 [Drone ${droneId}] Position saved to Redis:`, { lat: point.lat, lng: point.lng, step: currentIndex });
-      } else {
-        console.warn(`⚠️ [Drone ${droneId}] Failed to save position to Redis (Redis may not be available)`);
-      }
 
       // Save to database every N steps
       if (stepCount % saveToDbEvery === 0 || currentIndex === routePoints.length) {
@@ -132,8 +126,6 @@ async function startDroneSimulation(droneId, orderId, routePoints, options = {})
 
   // Store interval ID
   activeSimulations.set(droneId, intervalId);
-
-  console.log(`✅ Started simulation for drone ${droneId}, order ${orderId}, ${routePoints.length} route points`);
 }
 
 /**
@@ -151,7 +143,6 @@ function stopDroneSimulation(droneId) {
   clearInterval(intervalId);
   activeSimulations.delete(droneId);
 
-  console.log(`🛑 Stopped simulation for drone ${droneId}`);
   return true;
 }
 

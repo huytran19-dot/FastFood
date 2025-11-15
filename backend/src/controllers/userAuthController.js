@@ -5,8 +5,6 @@ const register = async (req, res) => {
   try {
     const { full_name, email, phone, password } = req.body;
 
-    console.log('📝 Register request body:', req.body);
-
     // Validation
     if (!full_name || !email || !password) {
       return res.status(400).json({

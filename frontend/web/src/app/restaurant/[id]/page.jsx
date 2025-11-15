@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Star, Clock, MapPin, Phone, ChevronLeft, Loader2 } from "lucide-react"
+import { Star, ChevronLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -145,16 +145,13 @@ export default function RestaurantPage() {
             <span className="text-muted-foreground">(250+ đánh giá)</span>
           </div>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
+            <div>
               <span>{restaurant.address}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
+            <div>
               <span>{restaurant.phone}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
+            <div>
               <span>{restaurant.openTime}</span>
             </div>
           </div>

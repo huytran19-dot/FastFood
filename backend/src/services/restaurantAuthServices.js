@@ -27,24 +27,14 @@ const restaurantAuthService = {
       }
 
       // Check if user is restaurant owner
-      console.log('👤 User role:', user.role?.name);
       if (user.role?.name !== 'restaurant') {
         throw new Error('Chỉ chủ nhà hàng mới được đăng nhập vào hệ thống này');
       }
 
       // Find restaurant owned by this user (check ANY status first)
-      console.log('🔍 Looking for restaurant with owner_id:', user.id);
-      
       let restaurant = await restaurants.findOne({
         where: { owner_id: user.id }
       });
-      
-      console.log('🏪 Found restaurant:', restaurant ? {
-        id: restaurant.id,
-        name: restaurant.name,
-        review_status: restaurant.review_status,
-        status: restaurant.status
-      } : 'null');
 
       // If no restaurant at all, reject login
       if (!restaurant) {

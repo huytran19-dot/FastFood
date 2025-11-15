@@ -16,6 +16,7 @@ const publicRoutes = require('./routes/publicRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const droneRoutesV2 = require('./routes/droneRoutesV2');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -89,6 +90,9 @@ app.use('/api/cart', cartRoutes);
 // Order routes
 app.use('/api/orders', orderRoutes);
 
+// Drone routes
+app.use('/api', droneRoutesV2);
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -97,12 +101,20 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server with Socket.IO
+const http = require('http');
+const httpServer = http.createServer(app);
+
+// Initialize Socket.IO
+const { initializeSocketIO } = require('./socket/socketServer');
+initializeSocketIO(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log('Server running on http://localhost:' + PORT);
   console.log('User App: http://localhost:5173');
   console.log('Restaurant App: http://localhost:5175');
   console.log('Admin App: http://localhost:5174');
+  console.log('Socket.IO: ws://localhost:' + PORT);
 });
 
-module.exports = app;
+module.exports = { app, httpServer };

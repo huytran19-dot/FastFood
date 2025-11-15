@@ -107,12 +107,12 @@ export default function RestaurantMapView({
       `)
       .openPopup();
 
-    // Add circle radius (e.g., delivery zone)
+    // Add circle radius (e.g., delivery zone) - Nationwide delivery (500km radius)
     circleRef.current = L.circle([lat, lng], {
       color: '#ef4444',
       fillColor: '#fca5a5',
-      fillOpacity: 0.2,
-      radius: 10000 // 10km delivery radius
+      fillOpacity: 0.15,
+      radius: 500000 // 500km delivery radius (covers all of Vietnam)
     }).addTo(map);
 
     return () => {
@@ -183,12 +183,12 @@ export default function RestaurantMapView({
         `)
         .openPopup();
 
-      // Add circle
+      // Add circle - Nationwide delivery
       fullscreenCircleRef.current = L.circle([lat, lng], {
         color: '#ef4444',
         fillColor: '#fca5a5',
-        fillOpacity: 0.2,
-        radius: 10000,
+        fillOpacity: 0.15,
+        radius: 500000, // 500km radius
       }).addTo(fullscreenMap);
     }, 150);
 
@@ -265,7 +265,7 @@ export default function RestaurantMapView({
         <div className="text-xs text-muted-foreground flex items-center gap-4">
           <span>
             <span className="inline-block w-3 h-3 rounded-full bg-red-500/20 border border-red-500 mr-2"></span>
-            Khu vực giao hàng trong bán kính 10km
+            🚁 Giao hàng TOÀN QUỐC bằng drone (bán kính 500km)
           </span>
           <span className="text-muted-foreground">
             💡 Cuộn chuột hoặc dùng nút +/- để zoom
@@ -312,7 +312,7 @@ export default function RestaurantMapView({
           <div className="p-4 pt-3 border-t flex justify-between items-center shrink-0">
             <span className="text-sm text-muted-foreground">
               <span className="inline-block w-3 h-3 rounded-full bg-red-500/20 border border-red-500 mr-2"></span>
-              Vùng giao hàng 10km
+              🚁 Vùng giao hàng TOÀN QUỐC (500km)
             </span>
             <Button
               variant="default"

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { ChevronLeft, Banknote, MapPin } from "lucide-react"
+import { ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -42,6 +42,13 @@ export default function CheckoutPage() {
       return
     }
 
+    // Refresh cart from server to ensure fresh data
+    refreshCart()
+
+  }, [isAuthenticated, navigate, toast, refreshCart])
+
+  // Check cart after refresh
+  useEffect(() => {
     // Redirect nếu giỏ hàng trống
     if (cart.items.length === 0) {
       toast({
@@ -61,7 +68,7 @@ export default function CheckoutPage() {
         phone: user.phone || ""
       }))
     }
-  }, [isAuthenticated, cart.items, user, navigate, toast])
+  }, [cart.items, user, navigate, toast])
 
   const subtotal = cart.total || 0
   const deliveryFee = 15000
@@ -81,12 +88,11 @@ export default function CheckoutPage() {
     }
 
     // Kiểm tra giỏ hàng từ server trước khi đặt hàng
-    console.log('===== CHECKOUT DEBUG =====');
-    console.log('Cart in state:', cart);
+
     
     try {
       const serverCart = await cartAPI.getCart();
-      console.log('Cart from server:', serverCart);
+
       
       if (!serverCart || !serverCart.items || serverCart.items.length === 0) {
         toast({
@@ -131,10 +137,31 @@ export default function CheckoutPage() {
     setIsProcessing(true)
 
     try {
+      // Validate coordinates
+      if (!deliveryInfo.lat || !deliveryInfo.lng) {
+        toast({
+          title: "Chưa chọn vị trí",
+          description: "Vui lòng chọn vị trí giao hàng trên bản đồ hoặc chọn từ gợi ý địa chỉ",
+          variant: "destructive"
+        })
+        setIsProcessing(false)
+        return
+      }
+
+      // Format delivery address with coordinates: "address, lat, lng"
+      const formattedAddress = `${deliveryInfo.address}, ${deliveryInfo.lat}, ${deliveryInfo.lng}`;
+      
+      console.log('📍 Creating order with coordinates:', {
+        address: deliveryInfo.address,
+        lat: deliveryInfo.lat,
+        lng: deliveryInfo.lng,
+        formatted: formattedAddress
+      });
+
       // Gọi API tạo đơn hàng
       const orderData = {
         restaurant_id: firstItem.restaurant_id,
-        delivery_address: deliveryInfo.address,
+        delivery_address: formattedAddress, // Include lat,lng in address
         delivery_phone: deliveryInfo.phone,
         delivery_name: deliveryInfo.fullName,
         note: deliveryInfo.note,
@@ -142,6 +169,9 @@ export default function CheckoutPage() {
       }
 
       const result = await orderAPI.createOrder(orderData)
+      
+      // Clear cart sau khi đặt hàng thành công
+      await clearCart()
       
       // Hiển thị thông báo và chuyển đến trang orders
       setIsProcessing(false)
@@ -180,10 +210,7 @@ export default function CheckoutPage() {
               {/* Delivery Address */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Địa chỉ giao hàng
-                  </CardTitle>
+                  <CardTitle>Địa chỉ giao hàng</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -265,8 +292,7 @@ export default function CheckoutPage() {
                   <CardTitle>Phương thức thanh toán</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center space-x-3 rounded-lg border border-border bg-muted/50 p-4">
-                    <Banknote className="h-5 w-5 text-muted-foreground" />
+                  <div className="rounded-lg border border-border bg-muted/50 p-4">
                     <div>
                       <div className="font-medium">Tiền mặt (COD)</div>
                       <div className="text-sm text-muted-foreground">Thanh toán khi nhận hàng</div>
