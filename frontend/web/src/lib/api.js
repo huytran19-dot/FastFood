@@ -75,7 +75,7 @@ export const publicAPI = {
     }
   },
 
-  // Lấy categories của nhà hàng
+  // Lấy danh mục của nhà hàng
   async getRestaurantCategories(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/public/restaurants/${id}/categories`, {
@@ -99,7 +99,19 @@ export const publicAPI = {
   },
 };
 
-// API functions
+// Mock user database (in a real app, this would be on the server)
+const MOCK_USERS = [
+  {
+    id: 1,
+    email: 'demo@example.com',
+    password: 'password123',
+    name: 'Demo User',
+    phone: '+1234567890',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo'
+  }
+];
+
+// Mock API functions
 export const authAPI = {
   // Register new user (with email verification)
   async register(userData) {
@@ -219,6 +231,12 @@ export const authAPI = {
   }
 };
 
+// Helper to get auth headers
+export const getAuthHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 // ===== USER API (cần auth) =====
 export const userAPI = {
   // Lấy thông tin user hiện tại
@@ -235,17 +253,17 @@ export const userAPI = {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Lỗi khi lấy thông tin user');
+        throw new Error(data.message || 'Lỗi khi lấy thông tin người dùng');
       }
 
-      return data;
+      return data.data;
     } catch (error) {
-      console.error('❌ Error fetching user:', error);
+      console.error('❌ Error fetching current user:', error);
       throw error;
     }
   },
 
-  // Cập nhật profile
+  // Cập nhật thông tin profile
   async updateProfile(profileData) {
     try {
       const response = await fetch(`${API_BASE_URL}/users/me`, {
@@ -260,13 +278,10 @@ export const userAPI = {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Lỗi khi cập nhật profile');
+        throw new Error(data.message || 'Lỗi khi cập nhật thông tin');
       }
 
-      // Update localStorage
-      localStorage.setItem('user', JSON.stringify(data));
-
-      return data;
+      return data.data;
     } catch (error) {
       console.error('❌ Error updating profile:', error);
       throw error;
@@ -276,15 +291,15 @@ export const userAPI = {
   // Đổi mật khẩu
   async changePassword(currentPassword, newPassword) {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/me/change-password`, {
+      const response = await fetch(`${API_BASE_URL}/users/me/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
         },
         body: JSON.stringify({
-          currentPassword,
-          newPassword,
+          current_password: currentPassword,
+          new_password: newPassword,
         }),
       });
 
@@ -300,12 +315,6 @@ export const userAPI = {
       throw error;
     }
   },
-};
-
-// Helper to get auth headers
-export const getAuthHeaders = () => {
-  const token = localStorage.getItem('authToken');
-  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 // ===== CART API (cần auth) =====

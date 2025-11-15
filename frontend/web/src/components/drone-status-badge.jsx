@@ -19,7 +19,7 @@ const statusConfig = {
 }
 
 export function DroneStatusBadge({ status }) {
-  const config = statusConfig[status]
+  const config = statusConfig[status] || statusConfig.PENDING
   return (
     <Badge className={cn("font-medium", config.className)} variant="secondary">
       {config.label}

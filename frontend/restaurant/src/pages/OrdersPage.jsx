@@ -15,7 +15,7 @@ import {
   Eye,
   ChevronDown,
   Package,
-  Radio
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import Modal from '@/components/ui/modal';
@@ -23,43 +23,43 @@ import { orderAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 const statusConfig = {
-  pending: {
+  PENDING: {
     label: 'Chờ xác nhận',
     color: 'bg-yellow-100 text-yellow-800',
     icon: Clock,
     badgeColor: 'bg-yellow-500'
   },
-  preparing: {
+  CONFIRMED: {
+    label: 'Đã xác nhận',
+    color: 'bg-blue-100 text-blue-800',
+    icon: CheckCircle,
+    badgeColor: 'bg-blue-500'
+  },
+  PREPARING: {
     label: 'Đang chuẩn bị',
     color: 'bg-blue-100 text-blue-800',
     icon: Package,
     badgeColor: 'bg-blue-500'
   },
-  ready: {
+  READY: {
     label: 'Sẵn sàng giao',
     color: 'bg-purple-100 text-purple-800',
     icon: CheckCircle,
     badgeColor: 'bg-purple-500'
   },
-  assigned: {
-    label: 'Đã gán đơn',
-    color: 'bg-green-100 text-green-800',
-    icon: CheckCircle,
-    badgeColor: 'bg-green-500'
-  },
-  delivering: {
+  DELIVERING: {
     label: 'Đang giao',
     color: 'bg-orange-100 text-orange-800',
     icon: Truck,
     badgeColor: 'bg-orange-500'
   },
-  completed: {
+  COMPLETED: {
     label: 'Hoàn thành',
     color: 'bg-green-100 text-green-800',
     icon: CheckCircle,
     badgeColor: 'bg-green-500'
   },
-  cancelled: {
+  CANCELLED: {
     label: 'Đã hủy',
     color: 'bg-red-100 text-red-800',
     icon: XCircle,
@@ -76,28 +76,30 @@ export default function OrdersPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const { toast } = useToast();
 
-  // Fetch orders from API
+  useEffect(() => {
+    fetchOrders();
+  }, [selectedStatus]);
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const data = await orderAPI.getAll(selectedStatus);
-      setOrders(data.orders || []);
+      const result = await orderAPI.getOrders({ 
+        status: selectedStatus === 'all' ? undefined : selectedStatus 
+      });
+      // Handle different response formats
+      setOrders(result.orders || result.data?.orders || result || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('Failed to fetch orders:', error);
       toast({
-        variant: 'destructive',
-        title: 'Lỗi',
-        description: 'Không thể tải danh sách đơn hàng',
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể tải danh sách đơn hàng",
       });
       setOrders([]);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchOrders();
-  }, [selectedStatus]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -117,77 +119,55 @@ export default function OrdersPage() {
   };
 
   const filteredOrders = orders.filter(order => {
+    // Filter by status
     const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
     
-    if (!searchTerm) {
-      return matchesStatus;
-    }
-    
-    const searchLower = searchTerm.toLowerCase();
+    // Filter by search term
     const matchesSearch = 
-      String(order.id || '').toLowerCase().includes(searchLower) ||
-      (order.customerName || '').toLowerCase().includes(searchLower) ||
-      (order.customerPhone || '').includes(searchTerm);
+      order.id.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_phone?.includes(searchTerm);
     
     return matchesStatus && matchesSearch;
   });
 
   const stats = {
     all: orders.length,
-    pending: orders.filter(o => o.status === 'pending').length,
-    preparing: orders.filter(o => o.status === 'preparing').length,
-    ready: orders.filter(o => o.status === 'ready').length,
-    assigned: orders.filter(o => o.status === 'assigned').length,
-    delivering: orders.filter(o => o.status === 'delivering').length,
-    completed: orders.filter(o => o.status === 'completed').length,
-    cancelled: orders.filter(o => o.status === 'cancelled').length
+    PENDING: orders.filter(o => o.status === 'PENDING').length,
+    CONFIRMED: orders.filter(o => o.status === 'CONFIRMED').length,
+    PREPARING: orders.filter(o => o.status === 'PREPARING').length,
+    READY: orders.filter(o => o.status === 'READY').length,
+    DELIVERING: orders.filter(o => o.status === 'DELIVERING').length,
+    COMPLETED: orders.filter(o => o.status === 'COMPLETED').length,
+    CANCELLED: orders.filter(o => o.status === 'CANCELLED').length
   };
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await orderAPI.updateStatus(orderId, newStatus);
       toast({
-        title: 'Thành công',
-        description: 'Đã cập nhật trạng thái đơn hàng',
+        title: "Thành công",
+        description: "Đã cập nhật trạng thái đơn hàng",
       });
-      // Refresh orders list
-      await fetchOrders();
+      // Reload orders
+      fetchOrders();
     } catch (error) {
-      console.error('Error updating order status:', error);
       toast({
-        variant: 'destructive',
-        title: 'Lỗi',
-        description: error.message || 'Không thể cập nhật trạng thái đơn hàng',
+        variant: "destructive",
+        title: "Lỗi",
+        description: error.message || "Không thể cập nhật trạng thái",
       });
     }
   };
 
-  const handleViewDetail = async (order) => {
-    try {
-      // Fetch full order detail from API
-      const data = await orderAPI.getById(order.id);
-      setSelectedOrder(data.order);
-      setIsDetailModalOpen(true);
-    } catch (error) {
-      console.error('Error fetching order detail:', error);
-      // Fallback to using order from list
-      setSelectedOrder(order);
-      setIsDetailModalOpen(true);
-      toast({
-        variant: 'destructive',
-        title: 'Lỗi',
-        description: 'Không thể tải chi tiết đơn hàng',
-      });
-    }
+  const handleViewDetail = (order) => {
+    setSelectedOrder(order);
+    setIsDetailModalOpen(true);
   };
 
   const StatusBadge = ({ status }) => {
-    const config = statusConfig[status] || {
-      label: status || 'Unknown',
-      color: 'bg-gray-100 text-gray-800',
-      icon: Clock,
-      badgeColor: 'bg-gray-500'
-    };
+    const config = statusConfig[status];
+    if (!config) return null;
     const Icon = config.icon;
     return (
       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${config.color}`}>
@@ -196,6 +176,19 @@ export default function OrdersPage() {
       </span>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Đang tải đơn hàng...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
@@ -261,22 +254,9 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
-      {/* Loading State */}
-      {loading && (
-        <Card>
-          <CardContent className="py-16">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent mx-auto mb-4"></div>
-              <p className="text-gray-600">Đang tải đơn hàng...</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Orders List */}
-      {!loading && (
-        <div className="space-y-4">
-          {filteredOrders.map(order => (
+      <div className="space-y-4">
+        {filteredOrders.map(order => (
           <Card key={order.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
               <div className="space-y-4">
@@ -295,13 +275,13 @@ export default function OrdersPage() {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                         <Calendar className="h-4 w-4" />
-                        <span>{formatTime(order.orderTime)}</span>
+                        <span>{formatTime(order.order_time)}</span>
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Tổng tiền</p>
-                    <p className="text-2xl font-bold text-orange-600">{formatPrice(order.totalAmount)}</p>
+                    <p className="text-2xl font-bold text-orange-600">{formatPrice(order.total_amount)}</p>
                   </div>
                 </div>
 
@@ -310,17 +290,17 @@ export default function OrdersPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
                       <User className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium">{order.customerName}</span>
+                      <span className="font-medium">{order.customer_name}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-gray-500" />
-                      <span>{order.customerPhone}</span>
+                      <span>{order.customer_phone}</span>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                      <span>{order.customerAddress}</span>
+                      <span>{order.customer_address}</span>
                     </div>
                   </div>
                 </div>
@@ -355,17 +335,17 @@ export default function OrdersPage() {
                     Chi tiết
                   </button>
 
-                  {order.status === 'pending' && (
+                  {order.status === 'PENDING' && (
                     <>
                       <button
-                        onClick={() => handleUpdateStatus(order.id, 'preparing')}
+                        onClick={() => handleUpdateStatus(order.id, 'CONFIRMED')}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium"
                       >
                         <CheckCircle className="h-4 w-4" />
-                        Xác nhận & Bắt đầu chuẩn bị
+                        Xác nhận
                       </button>
                       <button
-                        onClick={() => handleUpdateStatus(order.id, 'cancelled')}
+                        onClick={() => handleUpdateStatus(order.id, 'CANCELLED')}
                         className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm font-medium"
                       >
                         <XCircle className="h-4 w-4" />
@@ -374,9 +354,19 @@ export default function OrdersPage() {
                     </>
                   )}
 
-                  {order.status === 'preparing' && (
+                  {order.status === 'CONFIRMED' && (
                     <button
-                      onClick={() => handleUpdateStatus(order.id, 'ready')}
+                      onClick={() => handleUpdateStatus(order.id, 'PREPARING')}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Package className="h-4 w-4" />
+                      Bắt đầu chuẩn bị
+                    </button>
+                  )}
+
+                  {order.status === 'PREPARING' && (
+                    <button
+                      onClick={() => handleUpdateStatus(order.id, 'READY')}
                       className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-sm font-medium"
                     >
                       <CheckCircle className="h-4 w-4" />
@@ -384,16 +374,19 @@ export default function OrdersPage() {
                     </button>
                   )}
 
-                  {order.status === 'ready' && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-                      <Radio className="h-4 w-4" />
-                      <span>Vui lòng qua <strong>Điều Khiển Drone</strong> để gán đơn cho drone</span>
-                    </div>
+                  {order.status === 'READY' && (
+                    <button
+                      onClick={() => handleUpdateStatus(order.id, 'DELIVERING')}
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Truck className="h-4 w-4" />
+                      Bắt đầu giao
+                    </button>
                   )}
 
-                  {order.status === 'delivering' && (
+                  {order.status === 'DELIVERING' && (
                     <button
-                      onClick={() => handleUpdateStatus(order.id, 'completed')}
+                      onClick={() => handleUpdateStatus(order.id, 'COMPLETED')}
                       className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm font-medium"
                     >
                       <CheckCircle className="h-4 w-4" />
@@ -404,12 +397,11 @@ export default function OrdersPage() {
               </div>
             </CardContent>
           </Card>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
       {/* Empty State */}
-      {!loading && filteredOrders.length === 0 && (
+      {filteredOrders.length === 0 && (
         <Card>
           <CardContent className="py-16">
             <div className="text-center">
@@ -418,7 +410,7 @@ export default function OrdersPage() {
                 Không có đơn hàng
               </h3>
               <p className="text-gray-600">
-                {searchTerm ? 'Không tìm thấy đơn hàng phù hợp' : 'Chưa có đơn hàng nào'}
+                {searchTerm ? 'Không tìm thấy đơn hàng phù hợp' : selectedStatus === 'all' ? 'Chưa có đơn hàng nào' : 'Không có đơn hàng trong trạng thái này'}
               </p>
             </div>
           </CardContent>
@@ -491,7 +483,7 @@ export default function OrdersPage() {
             <div className="border-t pt-4">
               <div className="flex items-center justify-between text-lg">
                 <span className="font-semibold">Tổng cộng:</span>
-                <span className="font-bold text-orange-600">{formatPrice(selectedOrder.totalAmount)}</span>
+                <span className="font-bold text-orange-600">{formatPrice(selectedOrder.total_amount)}</span>
               </div>
             </div>
 
@@ -499,7 +491,7 @@ export default function OrdersPage() {
             <div className="border-t pt-4 space-y-2 text-sm text-gray-600">
               <div className="flex items-center justify-between">
                 <span>Thời gian đặt:</span>
-                <span>{formatTime(selectedOrder.orderTime)}</span>
+                <span>{formatTime(selectedOrder.order_time)}</span>
               </div>
               {selectedOrder.deliveryTime && (
                 <div className="flex items-center justify-between">

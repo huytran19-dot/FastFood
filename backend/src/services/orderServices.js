@@ -77,10 +77,6 @@ class OrderService {
       }
 
       // Tạo order
-      // COD: tạo với status CONFIRMED ngay
-      // Các phương thức khác: tạo với status PENDING
-      const orderStatus = payment_method === 'COD' ? 'CONFIRMED' : 'PENDING';
-      
       const order = await orders.create({
         customer_id: userId,
         restaurant_id,
@@ -90,7 +86,7 @@ class OrderService {
         delivery_name,
         note,
         delivery_fee,
-        status: orderStatus
+        status: 'PENDING'
       }, { transaction });
 
       // Tạo order items
@@ -207,58 +203,27 @@ class OrderService {
     if (transactionNo) {
       payment.transaction_no = transactionNo;
     }
-    
     await payment.save();
 
-    // Nếu thanh toán thành công, cập nhật trạng thái order
+    // Nếu thanh toán thành công, cập nhật trạng thái order thành CONFIRMED
     if (status === 'PAID') {
       await orders.update(
         { status: 'CONFIRMED' },
         { where: { id: orderId } }
       );
-      console.log(`✅ Order #${orderId} status updated to CONFIRMED`);
+      console.log(`✅ Order #${orderId} payment successful - status updated to CONFIRMED`);
+    }
+
+    // Nếu thanh toán thất bại, cập nhật trạng thái order thành CANCELLED
+    if (status === 'FAILED') {
+      await orders.update(
+        { status: 'CANCELLED' },
+        { where: { id: orderId } }
+      );
+      console.log(`❌ Order #${orderId} payment failed - status updated to CANCELLED`);
     }
 
     return payment;
-  }
-
-  // Cập nhật trạng thái đơn hàng
-  async updateOrderStatus(orderId, newStatus, userId = null) {
-    const whereClause = { id: orderId };
-    if (userId) {
-      whereClause.customer_id = userId;
-    }
-
-    const order = await orders.findOne({
-      where: whereClause,
-      include: [{
-        model: payments,
-        as: 'payment'
-      }]
-    });
-
-    if (!order) {
-      throw new Error('Không tìm thấy đơn hàng');
-    }
-
-    // Validate status transition
-    const validStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'DELIVERING', 'COMPLETED', 'CANCELLED'];
-    if (!validStatuses.includes(newStatus)) {
-      throw new Error('Trạng thái không hợp lệ');
-    }
-
-    order.status = newStatus;
-    await order.save();
-
-    // Nếu order chuyển sang DELIVERED và payment method là COD
-    // Tự động cập nhật payment status thành SUCCESS
-    if (newStatus === 'DELIVERING' && order.payment && order.payment.method === 'COD') {
-      order.payment.status = 'PAID';
-      await order.payment.save();
-      console.log(`✅ COD Payment #${order.payment.id} marked as PAID for order #${orderId}`);
-    }
-
-    return order;
   }
 
   // Hủy đơn hàng
@@ -276,6 +241,73 @@ class OrderService {
     }
 
     order.status = 'CANCELLED';
+    await order.save();
+
+    return order;
+  }
+
+  // Lấy danh sách đơn hàng của restaurant
+  async getOrdersByRestaurant(restaurantId, filters = {}) {
+    const { status, limit = 50, offset = 0 } = filters;
+    
+    const whereClause = { restaurant_id: restaurantId };
+    if (status && status !== 'all') {
+      whereClause.status = status.toUpperCase();
+    }
+
+    const { count, rows } = await orders.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: order_items,
+          as: 'order_items',
+          include: [{
+            model: menu_items,
+            as: 'item',
+            attributes: ['id', 'name', 'image_url', 'price']
+          }]
+        },
+        {
+          model: payments,
+          as: 'payment',
+          attributes: ['method', 'status']
+        }
+      ],
+      order: [['created_at', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    return { total: count, orders: rows };
+  }
+
+  // Cập nhật trạng thái đơn hàng (dành cho restaurant)
+  async updateOrderStatus(orderId, restaurantId, newStatus) {
+    const order = await orders.findOne({
+      where: { id: orderId, restaurant_id: restaurantId }
+    });
+
+    if (!order) {
+      throw new Error('Không tìm thấy đơn hàng');
+    }
+
+    // Validate status transitions
+    const validTransitions = {
+      'PENDING': ['CONFIRMED', 'CANCELLED'],
+      'CONFIRMED': ['PREPARING', 'CANCELLED'],
+      'PREPARING': ['READY'],
+      'READY': ['DELIVERING'],
+      'DELIVERING': ['COMPLETED'],
+      'COMPLETED': [],
+      'CANCELLED': []
+    };
+
+    const allowedStatuses = validTransitions[order.status] || [];
+    if (!allowedStatuses.includes(newStatus)) {
+      throw new Error(`Không thể chuyển từ trạng thái ${order.status} sang ${newStatus}`);
+    }
+
+    order.status = newStatus;
     await order.save();
 
     return order;

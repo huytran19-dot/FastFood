@@ -2,6 +2,7 @@ const orderService = require('../services/orderServices');
 const cartService = require('../services/cartServices');
 const droneService = require('../services/droneServices');
 const { emitOrderUpdate } = require('../socket/socketServer');
+const { createVNPayUrl, verifyVNPayReturn, vnpayResponseCodes } = require('../utils/vnpay');
 
 class OrderController {
   // Tạo đơn hàng mới
@@ -24,10 +25,10 @@ class OrderController {
         });
       }
 
-      if (!payment_method || payment_method !== 'COD') {
+      if (!payment_method || !['COD', 'VNPAY', 'MOMO'].includes(payment_method)) {
         return res.status(400).json({
           success: false,
-          message: 'Phương thức thanh toán không hợp lệ. Hiện chỉ hỗ trợ COD'
+          message: 'Phương thức thanh toán không hợp lệ'
         });
       }
 
@@ -80,6 +81,7 @@ class OrderController {
       });
 
       // Chỉ hỗ trợ COD
+      // Nếu thanh toán COD, trả về kết quả
       if (payment_method === 'COD') {
         return res.json({
           success: true,
@@ -93,9 +95,40 @@ class OrderController {
         });
       }
 
-      return res.status(400).json({
-        success: false,
-        message: 'Phương thức thanh toán không được hỗ trợ'
+      // Nếu thanh toán VNPay, tạo URL thanh toán
+      if (payment_method === 'VNPAY') {
+        const ipAddr = req.headers['x-forwarded-for'] || 
+                       req.connection.remoteAddress || 
+                       req.socket.remoteAddress ||
+                       '127.0.0.1';
+
+        const orderInfo = `Thanh toan don hang #${order.id}`;
+        const paymentUrl = createVNPayUrl(
+          order.id.toString(),
+          total_price + delivery_fee,
+          ipAddr,
+          orderInfo
+        );
+
+        return res.json({
+          success: true,
+          message: 'Đơn hàng đã tạo, chuyển đến trang thanh toán',
+          data: {
+            order_id: order.id,
+            payment_url: paymentUrl,
+            payment_method: 'VNPAY'
+          }
+        });
+      }
+
+      // TODO: Xử lý các phương thức thanh toán khác (MOMO, ...)
+      return res.json({
+        success: true,
+        message: 'Đặt hàng thành công',
+        data: {
+          order_id: order.id,
+          status: order.status
+        }
       });
 
     } catch (error) {
@@ -105,6 +138,59 @@ class OrderController {
         message: error.message || 'Lỗi khi tạo đơn hàng',
         error: error.message
       });
+    }
+  }
+
+  // Callback từ VNPay
+  async vnpayReturn(req, res) {
+    try {
+      const vnpParams = req.query;
+      
+      console.log('===== VNPay Return Params =====');
+      console.log(vnpParams);
+
+      // Verify chữ ký
+      const isValid = verifyVNPayReturn(vnpParams);
+      
+      if (!isValid) {
+        console.error('❌ Invalid VNPay signature');
+        return res.redirect(
+          `http://localhost:5173/payment-return?status=error&message=${encodeURIComponent('Chữ ký không hợp lệ')}`
+        );
+      }
+
+      const orderId = vnpParams.vnp_TxnRef;
+      const responseCode = vnpParams.vnp_ResponseCode;
+      const transactionNo = vnpParams.vnp_TransactionNo;
+      const amount = vnpParams.vnp_Amount / 100; // VNPay trả về amount * 100
+
+      // Kiểm tra kết quả thanh toán
+      if (responseCode === '00') {
+        // Thanh toán thành công
+        await orderService.updatePaymentStatus(orderId, 'PAID', transactionNo);
+        
+        console.log(`✅ Payment successful for order #${orderId}`);
+        
+        return res.redirect(
+          `http://localhost:5173/payment-return?status=success&orderId=${orderId}&amount=${amount}&transactionNo=${transactionNo}&message=${encodeURIComponent('Thanh toán thành công')}`
+        );
+      } else {
+        // Thanh toán thất bại
+        await orderService.updatePaymentStatus(orderId, 'FAILED');
+        
+        const errorMessage = vnpayResponseCodes[responseCode] || 'Thanh toán thất bại';
+        console.log(`❌ Payment failed for order #${orderId}: ${errorMessage}`);
+        
+        return res.redirect(
+          `http://localhost:5173/payment-return?status=error&orderId=${orderId}&message=${encodeURIComponent(errorMessage)}`
+        );
+      }
+
+    } catch (error) {
+      console.error('VNPay return error:', error);
+      return res.redirect(
+        `http://localhost:5173/?payment=error&message=${encodeURIComponent('Lỗi xử lý kết quả thanh toán')}`
+      );
     }
   }
 
@@ -234,41 +320,6 @@ class OrderController {
     }
   }
 
-  // Cập nhật trạng thái đơn hàng (cho admin/restaurant)
-  async updateOrderStatus(req, res) {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-
-      if (!status) {
-        return res.status(400).json({
-          success: false,
-          message: 'Thiếu trạng thái mới'
-        });
-      }
-
-      // Không cần userId nếu là admin/restaurant owner
-      const order = await orderService.updateOrderStatus(id, status);
-
-      res.json({
-        success: true,
-        message: 'Đã cập nhật trạng thái đơn hàng',
-        data: {
-          id: order.id,
-          status: order.status,
-          payment_status: order.payment?.status
-        }
-      });
-
-    } catch (error) {
-      console.error('Update order status error:', error);
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Lỗi khi cập nhật trạng thái đơn hàng'
-      });
-    }
-  }
-
   // Hủy đơn hàng
   async cancelOrder(req, res) {
     try {
@@ -289,146 +340,6 @@ class OrderController {
       res.status(500).json({
         success: false,
         message: error.message || 'Lỗi khi hủy đơn hàng'
-      });
-    }
-  }
-
-  // Xác nhận nhận hàng bằng OTP
-  async confirmDeliveryWithOtp(req, res) {
-    try {
-      const orderId = req.params.id;
-      const { otp } = req.body;
-
-      // Validate input
-      if (!otp) {
-        return res.status(400).json({
-          success: false,
-          message: 'Vui lòng nhập mã OTP'
-        });
-      }
-
-      // Load order for current user
-      const order = await orderService.getOrderById(orderId, req.user.id);
-
-      // Validate order exists (getOrderById throws error if not found, but we'll check anyway)
-      if (!order) {
-        return res.status(404).json({
-          success: false,
-          message: 'Không tìm thấy đơn hàng'
-        });
-      }
-
-      // Validate order status - should be DELIVERING (waiting for OTP confirmation)
-      if (order.status !== 'DELIVERING') {
-        return res.status(400).json({
-          success: false,
-          message: `Đơn hàng không ở trạng thái chờ xác nhận. Trạng thái hiện tại: ${order.status}`
-        });
-      }
-
-      // Validate delivery_otp exists
-      if (!order.delivery_otp) {
-        return res.status(400).json({
-          success: false,
-          message: 'Đơn hàng không có mã OTP giao hàng'
-        });
-      }
-
-      // Validate OTP expiration
-      if (!order.delivery_otp_expires_at) {
-        return res.status(400).json({
-          success: false,
-          message: 'Mã OTP không có thời gian hết hạn'
-        });
-      }
-
-      const now = new Date();
-      const expiresAt = new Date(order.delivery_otp_expires_at);
-      
-      if (expiresAt < now) {
-        return res.status(400).json({
-          success: false,
-          message: 'Mã OTP đã hết hạn'
-        });
-      }
-
-      // Validate OTP matches
-      if (order.delivery_otp !== otp) {
-        return res.status(400).json({
-          success: false,
-          message: 'Mã OTP không đúng'
-        });
-      }
-
-      // Check if already verified
-      if (order.delivery_otp_verified_at) {
-        return res.status(400).json({
-          success: false,
-          message: 'Đơn hàng đã được xác nhận trước đó'
-        });
-      }
-
-      // All validations passed - update order and payment
-      const transaction = await db.sequelize.transaction();
-
-      try {
-        // Update order: set verified_at and status to COMPLETED
-        await order.update({
-          delivery_otp_verified_at: new Date(),
-          status: 'COMPLETED'
-        }, { transaction });
-
-        // Update payment status to PAID if method is COD
-        if (order.payment && order.payment.method === 'COD') {
-          await payments.update(
-            { status: 'PAID' },
-            { 
-              where: { order_id: orderId },
-              transaction 
-            }
-          );
-        }
-
-        // Optionally update drone status to 'Rảnh' (idle) if drone exists
-        if (order.drone_id) {
-          try {
-            await droneService.updateDroneStatus(order.drone_id, 'Rảnh');
-          } catch (droneError) {
-            // Log but don't fail the transaction if drone update fails
-            console.error(`Error updating drone ${order.drone_id} status:`, droneError);
-          }
-        }
-
-        await transaction.commit();
-
-        res.json({
-          success: true,
-          message: 'Xác nhận nhận hàng thành công',
-          data: {
-            order_id: order.id,
-            status: 'COMPLETED'
-          }
-        });
-
-      } catch (error) {
-        await transaction.rollback();
-        throw error;
-      }
-
-    } catch (error) {
-      console.error('Confirm delivery with OTP error:', error);
-      
-      // Handle specific error from getOrderById
-      if (error.message === 'Không tìm thấy đơn hàng') {
-        return res.status(404).json({
-          success: false,
-          message: error.message
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Lỗi khi xác nhận nhận hàng'
       });
     }
   }

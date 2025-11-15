@@ -324,8 +324,9 @@ exports.getRestaurantOrders = async (req, res) => {
     // Map frontend status to backend status for filtering
     const frontendToBackendStatus = {
       'pending': 'PENDING',
-      'ready': 'CONFIRMED',
+      'confirmed': 'CONFIRMED',
       'preparing': 'PREPARING',
+      'ready': 'READY',
       'delivering': 'DELIVERING',
       'waiting_otp': 'WAITING_OTP',
       'completed': 'COMPLETED',
@@ -398,17 +399,29 @@ exports.getRestaurantOrders = async (req, res) => {
       } else {
         displayStatus = statusMap[orderData.status] || orderData.status.toLowerCase();
       }
+      // Map backend status to frontend status (UPPERCASE)
+      const statusMapping = {
+        'PENDING': 'PENDING',
+        'CONFIRMED': 'CONFIRMED',
+        'PREPARING': 'PREPARING',
+        'READY': 'READY',
+        'DELIVERING': 'DELIVERING',
+        'COMPLETED': 'COMPLETED',
+        'CANCELLED': 'CANCELLED'
+      };
+      
+      const backendStatus = statusMapping[orderData.status] || orderData.status;
       
       return {
         id: orderData.id,
-        status: displayStatus,
-        totalAmount: parseFloat(orderData.total_price),
-        orderTime: orderData.created_at,
-        deliveryTime: orderData.status === 'DELIVERING' ? orderData.updated_at : null,
-        completedTime: orderData.status === 'COMPLETED' ? orderData.updated_at : null,
-        customerName: orderData.delivery_name || orderData.customer?.full_name || 'N/A',
-        customerPhone: orderData.delivery_phone || orderData.customer?.phone || 'N/A',
-        customerAddress: orderData.delivery_address,
+        status: backendStatus, // Use mapped UPPERCASE status
+        total_amount: parseFloat(orderData.total_price), // snake_case
+        order_time: orderData.created_at, // snake_case
+        delivery_time: orderData.status === 'DELIVERING' ? orderData.updated_at : null,
+        completed_time: orderData.status === 'COMPLETED' ? orderData.updated_at : null,
+        customer_name: orderData.delivery_name || orderData.customer?.full_name || 'N/A', // snake_case
+        customer_phone: orderData.delivery_phone || orderData.customer?.phone || 'N/A', // snake_case
+        customer_address: orderData.delivery_address, // snake_case
         deliveryAddress: orderData.delivery_address, // Alias for compatibility
         note: orderData.note,
         items: orderData.order_items?.map(item => ({
@@ -527,12 +540,12 @@ exports.updateOrderStatus = async (req, res) => {
     // Map frontend status to backend status
     const frontendToBackendStatus = {
       'pending': 'PENDING',
-      'ready': 'CONFIRMED', // Frontend 'ready' maps to backend 'CONFIRMED'
+      'confirmed': 'CONFIRMED',
       'preparing': 'PREPARING',
+      'ready': 'READY',
       'delivering': 'DELIVERING',
       'completed': 'COMPLETED',
-      'cancelled': 'CANCELLED',
-      'assigned': 'CONFIRMED' // 'assigned' also maps to 'CONFIRMED' (order has drone but not yet delivering)
+      'cancelled': 'CANCELLED'
     };
     
     // Convert to lowercase for mapping
@@ -545,7 +558,7 @@ exports.updateOrderStatus = async (req, res) => {
     }
     
     // Validate status
-    const validStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'DELIVERING', 'COMPLETED', 'CANCELLED'];
+    const validStatuses = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERING', 'COMPLETED', 'CANCELLED'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
     }
@@ -577,10 +590,11 @@ exports.updateOrderStatus = async (req, res) => {
     
     // Define valid transitions
     const validTransitions = {
-      'PENDING': ['CONFIRMED', 'PREPARING', 'CANCELLED'], // Allow PENDING -> PREPARING directly
+      'PENDING': ['CONFIRMED', 'CANCELLED'],
       'CONFIRMED': ['PREPARING', 'CANCELLED'],
-      'PREPARING': ['CONFIRMED', 'DELIVERING', 'CANCELLED'], // Allow PREPARING -> CONFIRMED (ready) to assign drone
-      'DELIVERING': ['COMPLETED'],
+      'PREPARING': ['READY', 'CANCELLED'],
+      'READY': ['DELIVERING', 'CANCELLED'],
+      'DELIVERING': ['COMPLETED', 'CANCELLED'],
       'COMPLETED': [],
       'CANCELLED': []
     };
@@ -595,19 +609,20 @@ exports.updateOrderStatus = async (req, res) => {
 
     // Map backend status back to frontend
     const backendToFrontendStatus = {
-      'PENDING': 'pending',
-      'CONFIRMED': 'ready',
-      'PREPARING': 'preparing',
-      'DELIVERING': 'delivering',
-      'COMPLETED': 'completed',
-      'CANCELLED': 'cancelled'
+      'PENDING': 'PENDING',
+      'CONFIRMED': 'CONFIRMED',
+      'PREPARING': 'PREPARING',
+      'READY': 'READY',
+      'DELIVERING': 'DELIVERING',
+      'COMPLETED': 'COMPLETED',
+      'CANCELLED': 'CANCELLED'
     };
 
     res.json({
       message: 'Cập nhật trạng thái thành công',
       order: {
         id: order.id,
-        status: backendToFrontendStatus[order.status] || order.status.toLowerCase()
+        status: backendToFrontendStatus[order.status] || order.status
       }
     });
   } catch (error) {

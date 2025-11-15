@@ -20,6 +20,8 @@
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
-    "cloudinary": "^2.8.0"
+    "cloudinary": "^2.8.0",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^5.0.0"
   }
 }
