@@ -12,4 +12,7 @@ router.get('/', authMiddleware, orderController.getOrders);
 router.get('/:id', authMiddleware, orderController.getOrderDetail);
 router.patch('/:id/cancel', authMiddleware, orderController.cancelOrder);
 
+// Verify OTP for delivery - user only
+router.post('/:id/verify-otp', authMiddleware, orderController.verifyDeliveryOTP);
+
 module.exports = router;

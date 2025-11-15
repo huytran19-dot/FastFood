@@ -1,5 +1,5 @@
 const db = require('../models');
-const { orders, order_items, payments, menu_items, restaurants } = db;
+const { orders, order_items, payments, menu_items, restaurants, drones } = db;
 
 // Haversine formula to calculate distance between two coordinates (in km)
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -271,6 +271,12 @@ class OrderService {
           model: payments,
           as: 'payment',
           attributes: ['method', 'status']
+        },
+        {
+          model: drones,
+          as: 'drone',
+          required: false,
+          attributes: ['id', 'model', 'status']
         }
       ],
       order: [['created_at', 'DESC']],

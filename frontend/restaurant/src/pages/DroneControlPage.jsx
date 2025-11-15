@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import Modal from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { orderAPI, droneAPI } from '@/lib/api';
+import { orderAPI, droneAPI } from '../lib/api';
 import { restaurantAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import DroneTrackingMap from '@/components/drone/DroneTrackingMap';
@@ -21,6 +21,11 @@ import DroneTrackingMap from '@/components/drone/DroneTrackingMap';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 const statusConfig = {
+  confirmed: {
+    label: 'Sẵn sàng giao',
+    color: 'bg-purple-100 text-purple-800',
+    icon: CheckCircle,
+  },
   ready: {
     label: 'Sẵn sàng giao',
     color: 'bg-purple-100 text-purple-800',
@@ -62,7 +67,7 @@ const statusConfig = {
 const parseCustomerLat = (address) => {
   if (!address) return null;
   const parts = address.split(',');
-  if (parts.length < 2) return null;
+  if (parts.length < 3) return null; // Need at least: address, lat, lng
   const lat = parseFloat(parts[parts.length - 2].trim());
   const isValid = !isNaN(lat) && lat >= -90 && lat <= 90;
   return isValid ? lat : null;
@@ -71,7 +76,7 @@ const parseCustomerLat = (address) => {
 const parseCustomerLng = (address) => {
   if (!address) return null;
   const parts = address.split(',');
-  if (parts.length < 2) return null;
+  if (parts.length < 3) return null; // Need at least: address, lat, lng
   const lng = parseFloat(parts[parts.length - 1].trim());
   const isValid = !isNaN(lng) && lng >= -180 && lng <= 180;
   return isValid ? lng : null;
@@ -81,7 +86,7 @@ const parseCustomerLng = (address) => {
 const removeCoordinatesFromAddress = (address) => {
   if (!address) return 'N/A';
   const parts = address.split(',');
-  if (parts.length < 2) return address;
+  if (parts.length < 3) return address; // Need at least 3 parts to have coordinates
   
   // Check if last two parts are coordinates
   const lat = parseFloat(parts[parts.length - 2].trim());
@@ -140,55 +145,93 @@ export default function DroneControlPage() {
       }
     });
 
+    // Listen for drone position updates (for map tracking)
+    socket.on('drone:update', (data) => {
+      console.log('🛸 Drone position update:', data);
+      // Update will be handled by DroneTrackingMap via Socket.IO
+      // This is just for logging
+    });
+
     // Listen for order updates
     socket.on('order:update', (data) => {
+      console.log('📦 Order update received:', data);
+      
+      // Store toast data to show after state update
+      let shouldShowToast = false;
+      let toastData = null;
+      let shouldRemoveOrder = false;
+      
       // Update orders list
       setOrders(prevOrders => {
-        return prevOrders.map(order => {
-          if (order.id === data.orderId || order.id === parseInt(data.orderId)) {
-            // Update order with new status
-            const updatedOrder = { ...order };
-            
-            if (data.status === 'DELIVERING' && data.delivery_otp) {
-              updatedOrder.status = 'delivering';
-              updatedOrder.delivery_otp = data.delivery_otp;
+        return prevOrders
+          .map(order => {
+            if (order.id === data.orderId || order.id === parseInt(data.orderId)) {
+              // Update order with new status
+              const updatedOrder = { ...order };
               
-              // Show toast notification with OTP
-              toast({
-                title: '🚁 Drone đang bay!',
-                description: `Đơn #${order.id} - Mã OTP: ${data.delivery_otp}`,
-                duration: 10000,
-              });
-            } else if (data.status === 'WAITING_OTP') {
-              updatedOrder.status = 'waiting_otp';
-              updatedOrder.delivery_otp = data.delivery_otp;
+              if (data.status === 'DELIVERING' && data.delivery_otp) {
+                updatedOrder.status = 'delivering';
+                updatedOrder.delivery_otp = data.delivery_otp;
+                
+                // Mark for toast
+                shouldShowToast = true;
+                toastData = {
+                  title: '🚁 Drone đang bay!',
+                  description: `Đơn #${order.id} - Mã OTP: ${data.delivery_otp}`,
+                  duration: 10000,
+                };
+              } else if (data.status === 'WAITING_OTP') {
+                updatedOrder.status = 'waiting_otp';
+                updatedOrder.delivery_otp = data.delivery_otp;
+                
+                // Mark for toast
+                shouldShowToast = true;
+                toastData = {
+                  title: '🎯 Drone đã đến!',
+                  description: `Đơn #${order.id} - Mã OTP: ${data.delivery_otp}`,
+                  duration: 10000,
+                };
+              } else if (data.status === 'COMPLETED' && data.droneStatus === 'returning') {
+                // Keep order visible while drone is returning - user wants to see it on map
+                updatedOrder.status = 'returning';
+                updatedOrder.delivery_otp = null; // Clear OTP
+                
+                // Mark for toast
+                shouldShowToast = true;
+                toastData = {
+                  title: '✅ Giao hàng thành công!',
+                  description: `Đơn #${order.id} - Drone đang bay về nhà hàng`,
+                  duration: 5000,
+                };
+              } else if (data.status === 'COMPLETED' && data.droneStatus === 'idle') {
+                // NOW remove order - drone has returned to restaurant
+                shouldRemoveOrder = true;
+                
+                // Mark for toast
+                shouldShowToast = true;
+                toastData = {
+                  title: '✅ Drone đã về nhà hàng',
+                  description: `Đơn #${order.id} hoàn tất - Drone sẵn sàng cho đơn tiếp theo`,
+                  duration: 5000,
+                };
+                
+                // Return null to filter out
+                return null;
+              } else if (data.status === 'DELIVERING') {
+                updatedOrder.status = 'delivering';
+              }
               
-              // Show toast notification with OTP
-              toast({
-                title: '🎯 Drone đã đến!',
-                description: `Đơn #${order.id} - Mã OTP: ${data.delivery_otp}`,
-                duration: 10000,
-              });
-            } else if (data.status === 'COMPLETED' && data.droneStatus === 'returning') {
-              updatedOrder.status = 'returning';
-            } else if (data.status === 'COMPLETED' && data.droneStatus === 'idle') {
-              updatedOrder.status = 'completed';
-              
-              // Show completion notification
-              toast({
-                title: '✅ Drone đã bay về',
-                description: `Đơn #${order.id} hoàn thành - Drone đã về nhà hàng`,
-                duration: 5000,
-              });
-            } else if (data.status === 'DELIVERING') {
-              updatedOrder.status = 'delivering';
+              return updatedOrder;
             }
-            
-            return updatedOrder;
-          }
-          return order;
-        });
+            return order;
+          })
+          .filter(order => order !== null); // Remove null entries (completed/returning orders)
       });
+      
+      // Show toast AFTER state update
+      if (shouldShowToast && toastData) {
+        toast(toastData);
+      }
     });
 
     socket.on('disconnect', () => {});
@@ -215,8 +258,10 @@ export default function DroneControlPage() {
       setRestaurantInfo(restaurant);
       
       // Filter orders that are ready for delivery or in delivery process
+      // Include 'returning' so user can see drone flying back on map
+      // Exclude 'completed' as those are done
       const deliverableOrders = (ordersData.orders || []).filter(order => 
-        ['ready', 'assigned', 'delivering', 'waiting_otp', 'returning'].includes(order.status)
+        ['ready', 'confirmed', 'assigned', 'delivering', 'waiting_otp', 'returning'].includes(order.status)
       );
       
       setOrders(deliverableOrders);
@@ -272,7 +317,25 @@ export default function DroneControlPage() {
     }
 
     try {
-      await droneAPI.assignOrderToDrone(selectedOrder.id, selectedDroneId);
+      // Direct API call instead of using droneAPI object
+      const token = localStorage.getItem('authToken');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const response = await fetch(`${API_BASE_URL}/restaurant/orders/${selectedOrder.id}/assign-drone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ drone_id: selectedDroneId }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Có lỗi xảy ra');
+      }
+
       toast({
         variant: 'default',
         title: 'Thành công',
@@ -285,6 +348,7 @@ export default function DroneControlPage() {
       // Refresh data immediately to get updated status from DB
       fetchData();
     } catch (error) {
+      console.error('❌ Assign error:', error);
       toast({
         variant: 'destructive',
         title: 'Lỗi',
@@ -295,14 +359,30 @@ export default function DroneControlPage() {
 
   const handleStartDelivery = async (order) => {
     try {
-      const response = await droneAPI.startDelivery(order.id);
+      // Direct API call
+      const token = localStorage.getItem('authToken');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const response = await fetch(`${API_BASE_URL}/restaurant/orders/${order.id}/start-delivery`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Có lỗi xảy ra');
+      }
       
       // Update order in state with OTP from response
-      if (response.data?.delivery_otp) {
+      if (data.data?.delivery_otp) {
         setOrders(prevOrders => 
           prevOrders.map(o => 
             o.id === order.id 
-              ? { ...o, status: 'delivering', delivery_otp: response.data.delivery_otp }
+              ? { ...o, status: 'delivering', delivery_otp: data.data.delivery_otp }
               : o
           )
         );
@@ -311,7 +391,7 @@ export default function DroneControlPage() {
       toast({
         variant: 'default',
         title: 'Thành công',
-        description: `Đã bắt đầu giao hàng - OTP: ${response.data?.delivery_otp || 'N/A'}`,
+        description: `Đã bắt đầu giao hàng - OTP: ${data.data?.delivery_otp || 'N/A'}`,
       });
       
       // Add to tracking orders
@@ -326,6 +406,7 @@ export default function DroneControlPage() {
       
       fetchData(); // Refresh data
     } catch (error) {
+      console.error('❌ Start delivery error:', error);
       toast({
         variant: 'destructive',
         title: 'Lỗi',
@@ -537,12 +618,14 @@ export default function DroneControlPage() {
                             restaurantLat={restaurantInfo?.lat ? Number(restaurantInfo.lat) : null}
                             restaurantLng={restaurantInfo?.lng ? Number(restaurantInfo.lng) : null}
                             destinationLat={
-                              parseCustomerLat(order.customerAddress) || 
-                              (restaurantInfo?.lat ? Number(restaurantInfo.lat) + 0.008 : 10.8231)
+                              parseCustomerLat(order.customerAddress || order.customer_address) || 
+                              parseCustomerLat(order.deliveryAddress || order.delivery_address) ||
+                              (restaurantInfo?.lat ? Number(restaurantInfo.lat) + 0.01 : 10.8231)
                             }
                             destinationLng={
-                              parseCustomerLng(order.customerAddress) || 
-                              (restaurantInfo?.lng ? Number(restaurantInfo.lng) + 0.008 : 106.6297)
+                              parseCustomerLng(order.customerAddress || order.customer_address) || 
+                              parseCustomerLng(order.deliveryAddress || order.delivery_address) ||
+                              (restaurantInfo?.lng ? Number(restaurantInfo.lng) + 0.01 : 106.6297)
                             }
                             autoStart={trackingOrders.has(order.id)}
                           />
@@ -597,8 +680,8 @@ export default function DroneControlPage() {
                           </Button>
                         )}
                         
-                        {/* Ready orders can assign drone */}
-                        {order.status === 'ready' && (
+                        {/* Ready orders without drone - can assign drone */}
+                        {order.status === 'ready' && !order.drone_id && (
                           <Button
                             onClick={() => handleOpenAssignModal(order)}
                             className="bg-orange-500 hover:bg-orange-600 text-white"
@@ -608,15 +691,20 @@ export default function DroneControlPage() {
                           </Button>
                         )}
                         
-                        {/* Assigned orders can change drone */}
-                        {order.status === 'assigned' && (
-                          <Button
-                            onClick={() => handleOpenAssignModal(order)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white"
-                          >
-                            <Send className="h-4 w-4 mr-2" />
-                            Đổi Drone
-                          </Button>
+                        {/* Orders with drone (CONFIRMED/PREPARING/READY) - can start delivery */}
+                        {['confirmed', 'preparing', 'ready'].includes(order.status) && order.drone_id && order.drone_model && (
+                          <>
+                            <div className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
+                              ✓ Đã gán cho {order.drone_model}
+                            </div>
+                            <Button
+                              onClick={() => handleStartDelivery(order)}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <Play className="h-4 w-4 mr-2" />
+                              Bắt đầu giao
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>

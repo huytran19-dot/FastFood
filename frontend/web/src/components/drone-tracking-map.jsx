@@ -187,42 +187,13 @@ export function DroneTrackingMap({
     }
   }, [realtimePosition]);
 
-  // Poll drone position (fallback if no realtimePosition)
+  // Update drone marker on map from Socket.IO realtime data
   useEffect(() => {
-    // If we have realtime position from Socket.IO, skip polling
-    if (realtimePosition) return;
-    
-    if (!droneId || !orderId) return;
-    if (status !== 'DELIVERING' && status !== 'WAITING_OTP') return;
+    // Use realtime position from Socket.IO
+    const position = realtimePosition || dronePosition;
+    if (!position || !mapInstanceRef.current) return;
 
-    const fetchDronePosition = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/drone/${droneId}/position?orderId=${orderId}`);
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-          setDronePosition(data.data);
-          
-          if (data.data.distanceRemaining !== undefined) {
-            setDistance(data.data.distanceRemaining);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching drone position:', error);
-      }
-    };
-
-    fetchDronePosition();
-    const interval = setInterval(fetchDronePosition, 2000); // Poll every 2s
-
-    return () => clearInterval(interval);
-  }, [droneId, orderId, status, realtimePosition]);
-
-  // Update drone marker on map
-  useEffect(() => {
-    if (!dronePosition || !mapInstanceRef.current) return;
-
-    const { lat, lng } = dronePosition;
+    const { lat, lng } = position;
     
     // Validate coordinates
     if (!lat || !lng || isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))) {

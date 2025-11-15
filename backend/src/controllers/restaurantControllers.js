@@ -1,6 +1,6 @@
 const db = require('../models');
 const droneService = require('../services/droneServices');
-const droneSimulationServiceV2 = require('../services/droneSimulationServiceV2');
+const droneSimulator = require('../services/droneSimulator');
 const { emitOrderUpdate, emitDroneStatusUpdate, emitDroneUpdate, getIO } = require('../socket/socketServer');
 
 // POST /api/restaurants - Create new restaurant
@@ -400,30 +400,26 @@ exports.getRestaurantOrders = async (req, res) => {
       } else {
         displayStatus = statusMap[orderData.status] || orderData.status.toLowerCase();
       }
-      // Map backend status to frontend status (UPPERCASE)
-      const statusMapping = {
-        'PENDING': 'PENDING',
-        'CONFIRMED': 'CONFIRMED',
-        'PREPARING': 'PREPARING',
-        'READY': 'READY',
-        'DELIVERING': 'DELIVERING',
-        'WAITING_OTP': 'WAITING_OTP',
-        'COMPLETED': 'COMPLETED',
-        'CANCELLED': 'CANCELLED'
-      };
       
-      const backendStatus = statusMapping[orderData.status] || orderData.status;
+      // Use displayStatus (already in lowercase format) for frontend compatibility
       
       return {
         id: orderData.id,
-        status: backendStatus, // Use mapped UPPERCASE status
+        status: displayStatus, // Use lowercase status for frontend
         total_amount: parseFloat(orderData.total_price), // snake_case
+        totalAmount: parseFloat(orderData.total_price), // camelCase alias
         order_time: orderData.created_at, // snake_case
+        orderTime: orderData.created_at, // camelCase alias
         delivery_time: orderData.status === 'DELIVERING' ? orderData.updated_at : null,
+        deliveryTime: orderData.status === 'DELIVERING' ? orderData.updated_at : null,
         completed_time: orderData.status === 'COMPLETED' ? orderData.updated_at : null,
+        completedTime: orderData.status === 'COMPLETED' ? orderData.updated_at : null,
         customer_name: orderData.delivery_name || orderData.customer?.full_name || 'N/A', // snake_case
+        customerName: orderData.delivery_name || orderData.customer?.full_name || 'N/A', // camelCase alias
         customer_phone: orderData.delivery_phone || orderData.customer?.phone || 'N/A', // snake_case
+        customerPhone: orderData.delivery_phone || orderData.customer?.phone || 'N/A', // camelCase alias
         customer_address: orderData.delivery_address, // snake_case
+        customerAddress: orderData.delivery_address, // camelCase alias
         deliveryAddress: orderData.delivery_address, // Alias for compatibility
         note: orderData.note,
         items: orderData.order_items?.map(item => ({
@@ -705,11 +701,11 @@ exports.assignOrderToDrone = async (req, res) => {
     }
 
     // Check if order is ready for delivery (can assign drone)
-    // Frontend 'ready' = Backend 'CONFIRMED'
-    // Allow assigning to orders with CONFIRMED status (can reassign if already assigned)
-    if (order.status !== 'CONFIRMED') {
+    // Order must be in READY status to assign drone
+    // READY = Food is prepared and ready for delivery
+    if (order.status !== 'READY') {
       return res.status(400).json({ 
-        message: `Đơn hàng đang ở trạng thái ${order.status}, không thể gán drone. Chỉ có thể gán khi đơn hàng ở trạng thái CONFIRMED (Sẵn sàng giao).` 
+        message: `Đơn hàng đang ở trạng thái ${order.status}, không thể gán drone. Chỉ có thể gán khi đơn hàng ở trạng thái READY (Sẵn sàng giao).` 
       });
     }
 
@@ -794,6 +790,7 @@ exports.assignOrderToDrone = async (req, res) => {
 exports.startDelivery = async (req, res) => {
   try {
     const { id: orderId } = req.params;
+    console.log(`🚁 [START DELIVERY] Order #${orderId} - Request received`);
 
     // Get restaurant owned by user
     const restaurant = await db.restaurants.findOne({
@@ -801,8 +798,11 @@ exports.startDelivery = async (req, res) => {
     });
 
     if (!restaurant) {
+      console.log(`❌ [START DELIVERY] Order #${orderId} - Restaurant not found`);
       return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
     }
+
+    console.log(`✅ [START DELIVERY] Order #${orderId} - Restaurant found: ${restaurant.name}`);
 
     // Get order
     const order = await db.orders.findOne({
@@ -820,21 +820,37 @@ exports.startDelivery = async (req, res) => {
     });
 
     if (!order) {
+      console.log(`❌ [START DELIVERY] Order #${orderId} - Order not found`);
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
 
+    console.log(`✅ [START DELIVERY] Order #${orderId} - Status: ${order.status}, Drone: ${order.drone_id}`);
+
     if (!order.drone_id) {
+      console.log(`❌ [START DELIVERY] Order #${orderId} - No drone assigned`);
       return res.status(400).json({ message: 'Đơn hàng chưa được gán cho drone' });
     }
 
+    // Check order status - can start delivery from READY or CONFIRMED (after assigned drone)
+    const allowedStatuses = ['READY', 'CONFIRMED', 'PREPARING'];
+    if (!allowedStatuses.includes(order.status)) {
+      console.log(`❌ [START DELIVERY] Order #${orderId} - Invalid status: ${order.status}`);
+      return res.status(400).json({ 
+        message: `Không thể bắt đầu giao hàng. Đơn hàng đang ở trạng thái ${order.status}. Chỉ có thể giao khi đơn hàng ở trạng thái READY, CONFIRMED hoặc PREPARING.` 
+      });
+    }
+
     // Check if simulation is already running
-    const currentState = droneSimulationServiceV2.getSimulationState(order.drone_id, orderId);
-    if (currentState && currentState.isRunning) {
+    if (droneSimulator.isSimulationRunning(order.drone_id)) {
+      console.log(`❌ [START DELIVERY] Order #${orderId} - Simulation already running`);
       return res.status(400).json({ message: 'Drone đang trong quá trình giao hàng' });
     }
 
+    console.log(`✅ [START DELIVERY] Order #${orderId} - All checks passed, starting simulation...`);
+
     // Get restaurant coordinates
     if (!restaurant.lat || !restaurant.lng) {
+      console.log(`❌ [START DELIVERY] Order #${orderId} - Restaurant missing coordinates`);
       return res.status(400).json({ message: 'Nhà hàng chưa có tọa độ. Vui lòng cập nhật vị trí nhà hàng.' });
     }
 
@@ -874,6 +890,8 @@ exports.startDelivery = async (req, res) => {
     if (drone) {
       await drone.update({ status: 'delivering' });
       
+      console.log(`✅ [START DELIVERY] Order #${orderId} - Drone updated to 'delivering'`);
+      
       // Emit drone status update
       emitDroneStatusUpdate({
         droneId: order.drone_id,
@@ -884,26 +902,40 @@ exports.startDelivery = async (req, res) => {
       });
     }
 
-    // Start simulation using V2 service with OTP and Socket.IO
-    await droneSimulationServiceV2.startPhaseToCustomer({
-      droneId: order.drone_id,
-      orderId: orderId,
-      startLat: restaurantLat,
-      startLng: restaurantLng,
-      endLat: customerLat,
-      endLng: customerLng,
-      totalTimeMs: 20000, // 20 seconds flight time
-      onUpdate: (updatePayload) => {
-        // Emit drone position updates to all clients (including user tracking page)
-        emitDroneUpdate(order.drone_id, updatePayload);
-        
-        // Also emit to order room for customer tracking page
-        const io = getIO();
-        if (io) {
-          io.to(`order:${orderId}`).emit('drone:update', updatePayload);
+    console.log(`🚀 [START DELIVERY] Order #${orderId} - Starting simulation...`);
+    console.log(`📍 [START DELIVERY] Route: Restaurant(${restaurantLat}, ${restaurantLng}) → Customer(${customerLat}, ${customerLng})`);
+
+    // Generate route points (20 points for smooth animation)
+    const routePoints = droneSimulator.generateRoutePoints(
+      restaurantLat,
+      restaurantLng,
+      customerLat,
+      customerLng,
+      20
+    );
+
+    // Start simulation using droneSimulator with OTP and Socket.IO
+    await droneSimulator.startDroneSimulation(
+      order.drone_id,
+      orderId,
+      routePoints,
+      {
+        intervalMs: 1000, // 1 second per step
+        saveToDbEvery: 5,
+        onUpdate: (updatePayload) => {
+          // Emit drone position updates to all clients (including user tracking page)
+          emitDroneUpdate(order.drone_id, updatePayload);
+          
+          // Also emit to order room for customer tracking page
+          const io = getIO();
+          if (io) {
+            io.to(`order:${orderId}`).emit('drone:update', updatePayload);
+          }
         }
       }
-    });
+    );
+
+    console.log(`✅ [START DELIVERY] Order #${orderId} - Simulation started successfully`);
 
     // Get updated order with OTP
     const updatedOrder = await db.orders.findByPk(orderId, {

@@ -1,7 +1,8 @@
 const orderService = require('../services/orderServices');
 const cartService = require('../services/cartServices');
 const droneService = require('../services/droneServices');
-const { emitOrderUpdate } = require('../socket/socketServer');
+const droneSimulator = require('../services/droneSimulator');
+const { emitOrderUpdate, emitDroneUpdate } = require('../socket/socketServer');
 const { createVNPayUrl, verifyVNPayReturn, vnpayResponseCodes } = require('../utils/vnpay');
 
 class OrderController {
@@ -340,6 +341,150 @@ class OrderController {
       res.status(500).json({
         success: false,
         message: error.message || 'Lỗi khi hủy đơn hàng'
+      });
+    }
+  }
+
+  // Verify OTP for delivery - user only
+  async verifyDeliveryOTP(req, res) {
+    try {
+      const { id: orderId } = req.params;
+      const { otp } = req.body;
+      const userId = req.user.id;
+
+      if (!otp) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng nhập mã OTP'
+        });
+      }
+
+      // Get order and verify ownership
+      const order = await orderService.getOrderById(orderId, userId);
+
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy đơn hàng'
+        });
+      }
+
+      // Order ownership already verified by getOrderById (customer_id = userId)
+
+      // Check order status
+      if (order.status !== 'WAITING_OTP') {
+        return res.status(400).json({
+          success: false,
+          message: 'Đơn hàng không trong trạng thái chờ xác nhận OTP'
+        });
+      }
+
+      // Verify OTP
+      if (order.delivery_otp !== otp.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã OTP không đúng, vui lòng thử lại'
+        });
+      }
+
+      // Update order to COMPLETED and clear OTP
+      await order.update({
+        delivery_otp_verified: 1,
+        delivery_otp: null, // Clear OTP after verification
+        status: 'COMPLETED',
+        delivered_at: new Date()
+      });
+
+      console.log(`✅ [OTP] Verified for order ${orderId} by user ${userId} - Status: COMPLETED, OTP cleared`);
+
+      // Update drone status to 'returning'
+      if (order.drone_id) {
+        await droneService.updateDroneStatus(order.drone_id, 'returning');
+        
+        // Start drone returning simulation
+        try {
+          // Get restaurant coordinates from order
+          const restaurantLat = order.restaurant?.lat ? parseFloat(order.restaurant.lat) : null;
+          const restaurantLng = order.restaurant?.lng ? parseFloat(order.restaurant.lng) : null;
+          
+          // Get customer coordinates from delivery_address (format: "address, lat, lng")
+          let customerLat = null;
+          let customerLng = null;
+          
+          if (order.delivery_address) {
+            const parts = order.delivery_address.split(',');
+            if (parts.length >= 3) {
+              customerLat = parseFloat(parts[parts.length - 2].trim());
+              customerLng = parseFloat(parts[parts.length - 1].trim());
+            }
+          }
+          
+          // Validate coordinates
+          if (restaurantLat && restaurantLng && customerLat && customerLng) {
+            console.log(`🔄 [RETURN] Starting drone ${order.drone_id} return flight from (${customerLat}, ${customerLng}) to (${restaurantLat}, ${restaurantLng})`);
+            
+            // Generate return route points (customer → restaurant)
+            const returnRoutePoints = droneSimulator.generateRoutePoints(
+              customerLat,
+              customerLng,
+              restaurantLat,
+              restaurantLng,
+              20 // 20 points
+            );
+            
+            // Start return simulation
+            await droneSimulator.startDroneSimulation(
+              order.drone_id,
+              orderId,
+              returnRoutePoints,
+              {
+                intervalMs: 1000,
+                saveToDbEvery: 5,
+                isReturning: true, // CRITICAL: Mark this as return flight
+                onUpdate: (updatePayload) => {
+                  // Update phase to RETURNING
+                  emitDroneUpdate(order.drone_id, {
+                    ...updatePayload,
+                    phase: 'RETURNING',
+                    status: 'RETURNING'
+                  });
+                }
+              }
+            );
+            
+            console.log(`✅ [RETURN] Drone ${order.drone_id} return simulation started`);
+          } else {
+            console.warn(`⚠️ [RETURN] Missing coordinates - Restaurant: (${restaurantLat}, ${restaurantLng}), Customer: (${customerLat}, ${customerLng})`);
+          }
+        } catch (returnError) {
+          console.error(`❌ [RETURN] Error starting return simulation:`, returnError);
+          // Don't fail the OTP verification if return simulation fails
+        }
+      }
+
+      // Emit order update
+      emitOrderUpdate(orderId, {
+        status: 'COMPLETED',
+        delivery_otp: null, // Clear OTP from realtime update
+        droneStatus: 'returning',
+        message: 'Đã xác nhận OTP - Drone đang bay về nhà hàng'
+      });
+
+      res.json({
+        success: true,
+        message: 'Xác nhận OTP thành công! Đơn hàng đã được giao.',
+        data: {
+          orderId,
+          status: 'COMPLETED',
+          deliveredAt: order.delivered_at
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Error verifying OTP:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi xác nhận OTP'
       });
     }
   }
