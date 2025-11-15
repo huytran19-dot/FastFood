@@ -14,8 +14,6 @@ import MenuPage from '@/pages/MenuPage'
 import CategoriesPage from '@/pages/CategoriesPage'
 import OrdersPage from '@/pages/OrdersPage'
 import DroneControlPage from '@/pages/DroneControlPage'
-import DroneTrackingDemo from '@/pages/DroneTrackingDemo'
-import DroneTrackingDemoV2 from '@/pages/DroneTrackingDemoV2'
 import ProfilePage from '@/pages/ProfilePage'
 import RestaurantLayout from '@/components/layout/RestaurantLayout'
 
@@ -152,10 +150,6 @@ function AppContent() {
         {/* Deliveries route temporarily disabled - feature under development */}
         {/* <Route path="/restaurant/deliveries" element={<ProtectedRoute><RestaurantLayout><DeliveriesPage /></RestaurantLayout></ProtectedRoute>} /> */}
         <Route path="/restaurant/profile" element={<ProtectedRoute><RestaurantLayout><ProfilePage /></RestaurantLayout></ProtectedRoute>} />
-        
-        {/* Demo Drone Tracking - No Layout wrapper for full screen */}
-        <Route path="/demo/drone/:orderId" element={<ProtectedRoute><DroneTrackingDemo /></ProtectedRoute>} />
-        <Route path="/demo/drone-v2/:orderId" element={<ProtectedRoute><DroneTrackingDemoV2 /></ProtectedRoute>} />
 
         {/* Default Route */}
         <Route path="/" element={<Navigate to="/login" replace />} />

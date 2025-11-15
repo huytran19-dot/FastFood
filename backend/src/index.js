@@ -16,7 +16,6 @@ const publicRoutes = require('./routes/publicRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const orderRoutes = require('./routes/orderRoutes');
-const droneRoutesV2 = require('./routes/droneRoutesV2');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -89,9 +88,6 @@ app.use('/api/cart', cartRoutes);
 
 // Order routes
 app.use('/api/orders', orderRoutes);
-
-// Drone routes
-app.use('/api', droneRoutesV2);
 
 // Health check
 app.get('/api/health', (req, res) => {

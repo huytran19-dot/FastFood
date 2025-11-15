@@ -92,8 +92,13 @@ export default function OrdersPage() {
       const result = await orderAPI.getOrders({ 
         status: selectedStatus === 'all' ? undefined : selectedStatus 
       });
-      // Handle different response formats
-      setOrders(result.orders || result.data?.orders || result || []);
+      // Handle different response formats and normalize status to UPPERCASE
+      const fetchedOrders = result.orders || result.data?.orders || result || [];
+      const normalizedOrders = fetchedOrders.map(order => ({
+        ...order,
+        status: (order.status || '').toUpperCase() // Normalize to UPPERCASE
+      }));
+      setOrders(normalizedOrders);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       toast({
@@ -144,6 +149,7 @@ export default function OrdersPage() {
     PREPARING: orders.filter(o => o.status === 'PREPARING').length,
     READY: orders.filter(o => o.status === 'READY').length,
     DELIVERING: orders.filter(o => o.status === 'DELIVERING').length,
+    WAITING_OTP: orders.filter(o => o.status === 'WAITING_OTP').length,
     COMPLETED: orders.filter(o => o.status === 'COMPLETED').length,
     CANCELLED: orders.filter(o => o.status === 'CANCELLED').length
   };
@@ -381,13 +387,10 @@ export default function OrdersPage() {
                   )}
 
                   {order.status === 'READY' && (
-                    <button
-                      onClick={() => handleUpdateStatus(order.id, 'DELIVERING')}
-                      className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium"
-                    >
-                      <Truck className="h-4 w-4" />
-                      Bắt đầu giao
-                    </button>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium">
+                      <Package className="h-4 w-4" />
+                      <span>Vui lòng qua trang Điều khiển Drone để gán đơn</span>
+                    </div>
                   )}
 
                   {order.status === 'DELIVERING' && (
@@ -443,35 +446,50 @@ export default function OrdersPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-500" />
-                  <span>{selectedOrder.customerName}</span>
+                  <span>{selectedOrder.delivery_name || selectedOrder.customer_name || 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-gray-500" />
-                  <span>{selectedOrder.customerPhone}</span>
+                  <span>{selectedOrder.delivery_phone || selectedOrder.customer_phone || 'N/A'}</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
-                  <span>{selectedOrder.customerAddress}</span>
-                </div>
+                {selectedOrder.delivery_address && (
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+                    <span className="flex-1">{selectedOrder.delivery_address.split(',').slice(0, -2).join(',') || selectedOrder.delivery_address}</span>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Drone Info */}
+            {selectedOrder.drone && (
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3">Thông tin giao hàng</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">🚁 Drone:</span>
+                    <span className="font-medium text-blue-600">{selectedOrder.drone.model}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Order Items */}
             <div className="border-t pt-4">
               <h3 className="font-semibold mb-3">Chi tiết món ăn</h3>
               <div className="space-y-3">
-                {selectedOrder.items.map((item, idx) => (
+                {(selectedOrder.order_items || []).map((orderItem, idx) => (
                   <div key={idx} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center">
-                        <span className="font-bold text-gray-600">{item.quantity}x</span>
+                        <span className="font-bold text-gray-600">{orderItem.quantity}x</span>
                       </div>
                       <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-gray-600">{formatPrice(item.price)}</p>
+                        <p className="font-medium">{orderItem.item?.name || 'N/A'}</p>
+                        <p className="text-sm text-gray-600">{formatPrice(orderItem.price)}</p>
                       </div>
                     </div>
-                    <p className="font-bold">{formatPrice(item.price * item.quantity)}</p>
+                    <p className="font-bold">{formatPrice(orderItem.price * orderItem.quantity)}</p>
                   </div>
                 ))}
               </div>

@@ -197,17 +197,6 @@ export default function TrackingPage() {
                 <CardTitle>Vị trí drone</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Debug Info */}
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="mb-4 p-3 bg-gray-100 rounded text-xs font-mono">
-                    <div>Drone ID: {order.drone_id || 'N/A'}</div>
-                    <div>Restaurant: {order.restaurant?.lat}, {order.restaurant?.lng}</div>
-                    <div>Customer: {order.delivery_address_detail?.lat}, {order.delivery_address_detail?.lng}</div>
-                    <div>Status: {order.status}</div>
-                    <div>Show Map: {(order.drone_id && order.restaurant?.lat && order.restaurant?.lng && order.delivery_address_detail?.lat && order.delivery_address_detail?.lng) ? 'YES ✅' : 'NO ❌'}</div>
-                  </div>
-                )}
-                
                 {order.drone_id && order.restaurant?.lat && order.restaurant?.lng && 
                  order.delivery_address_detail?.lat && order.delivery_address_detail?.lng ? (
                   <div>
