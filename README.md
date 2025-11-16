@@ -22,8 +22,8 @@
 
 ### 🎯 Điểm Khác Biệt
 
-- ✅ **Giao hàng bằng Drone** - Tự động phân công & tracking real-time
-- ✅ **Thanh toán VNPay** - Tích hợp cổng thanh toán chính thức
+- ✅ **Giao hàng bằng Drone** - Phân công drone thủ công - tracking real-time
+- ✅ **Thanh toán VNPay** - Tích hợp cổng thanh toán Sandbox VNPay
 - ✅ **Real-time Updates** - Socket.IO cho tracking đơn hàng
 - ✅ **Map Integration** - Goong.io Maps API (Vietnam)
 - ✅ **Email Verification** - SendGrid authentication
@@ -38,27 +38,24 @@
 
 #### Authentication & Profile
 - 📧 Đăng ký với xác thực email (SendGrid)
-- 🔐 Đăng nhập với JWT token (7 days)
-- 🔑 Reset password qua email
+- 🔐 Đăng nhập với JWT token 
 - 👤 Quản lý thông tin cá nhân
 
 #### Shopping Experience
-- 🔍 Tìm kiếm nhà hàng gần nhất (Geolocation + Haversine)
 - 📱 Xem thực đơn theo danh mục
 - 🛒 Thêm món vào giỏ hàng
-- 💰 Tính tổng tự động, áp dụng khuyến mãi
 
 #### Order & Payment
 - 📦 Tạo đơn hàng với địa chỉ giao hàng
-- 💳 Thanh toán VNPay (ATM/QR/Visa)
+- 💳 Thanh toán VNPay 
 - 📜 Lịch sử đơn hàng với filter
 - 🚁 Tracking drone real-time trên map
+- 🏁 Nhập OTP để Xác nhận giao hàng thành công
 
 #### Delivery Tracking
 - 🗺️ Xem drone bay trên Leaflet map
 - 📍 Cập nhật vị trí mỗi 1 giây
 - ⚡ Progress bar + ETA countdown
-- 🔋 Hiển thị mức pin drone
 
 ---
 
@@ -74,11 +71,10 @@
 - 📋 Tạo danh mục thực đơn
 - 🍕 Thêm/Sửa/Xóa món ăn
 - 🖼️ Upload ảnh món ăn (max 5MB)
-- 💵 Cập nhật giá & tồn kho
+- 💵 Cập nhật giá 
 - 🔄 Bật/Tắt món ăn
 
 #### Order Processing
-- 🔔 Nhận thông báo đơn mới (Socket.IO)
 - ✅ Accept/Reject đơn hàng
 - 👨‍🍳 Cập nhật trạng thái nấu ăn
 - 📊 Thống kê doanh thu theo ngày/tháng
@@ -88,7 +84,6 @@
 - 🎯 Phân công đơn hàng cho drone
 - ▶️ Bắt đầu giao hàng (simulation)
 - 📡 Theo dõi drone real-time
-- 🏁 Xác nhận giao hàng thành công
 
 ---
 
@@ -101,8 +96,6 @@
 
 #### Restaurant Approval
 - 🏪 Duyệt/Từ chối nhà hàng mới
-- ✍️ Ghi chú lý do reject
-- 📧 Gửi email thông báo kết quả
 - 📈 Dashboard nhà hàng đang hoạt động
 
 #### Order Monitoring
@@ -110,12 +103,6 @@
 - 🔍 Filter theo trạng thái/ngày
 - 💰 Thống kê doanh thu tổng
 - 🚁 Giám sát drone hoạt động
-
-#### System Settings
-- ⚙️ Cấu hình hệ thống
-- 📊 View logs & analytics
-- 🗄️ Database backup
-
 
 ---
 
