@@ -61,23 +61,31 @@ class orders extends Sequelize.Model {
       allowNull: true,
       defaultValue: 15000
     },
-    status: {
-      type: DataTypes.ENUM('PENDING','CONFIRMED','PREPARING','READY','DELIVERING','WAITING_OTP','COMPLETED','CANCELLED'),
-      allowNull: false,
-      defaultValue: "PENDING"
-    },
     delivery_otp: {
       type: DataTypes.STRING(10),
       allowNull: true
     },
+    delivery_otp_expires_at: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    delivery_otp_verified_at: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     delivery_otp_verified: {
       type: DataTypes.TINYINT(1),
-      allowNull: false,
+      allowNull: true,
       defaultValue: 0
     },
     delivered_at: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    status: {
+      type: DataTypes.ENUM('PENDING','CONFIRMED','PREPARING','READY','DELIVERING','WAITING_OTP','COMPLETED','CANCELLED'),
+      allowNull: false,
+      defaultValue: "PENDING"
     }
   }, {
     sequelize,

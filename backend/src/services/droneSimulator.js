@@ -77,8 +77,10 @@ async function startDroneSimulation(droneId, orderId, routePoints, options = {})
   let otp = null;
   if (!isReturning) {
     otp = generateOTP();
+    console.log(`🔐 [DRONE SIM] Order #${orderId} - Generated OTP: ${otp}`);
+    
     try {
-      await orders.update(
+      const [updateCount] = await orders.update(
         { 
           status: 'DELIVERING',
           delivery_otp: otp,
@@ -86,16 +88,19 @@ async function startDroneSimulation(droneId, orderId, routePoints, options = {})
         },
         { where: { id: orderId } }
       );
+      
+      console.log(`✅ [DRONE SIM] Order #${orderId} - OTP saved to database (${updateCount} row(s) updated)`);
     
-    // Emit order update
-    socketServer.emitOrderUpdate(orderId, {
-      status: 'DELIVERING',
-      delivery_otp: otp,
-      droneStatus: 'delivering',
-      message: 'Drone đang bay tới địa chỉ giao hàng'
-    });
+      // Emit order update
+      socketServer.emitOrderUpdate(orderId, {
+        status: 'DELIVERING',
+        delivery_otp: otp,
+        droneStatus: 'delivering',
+        message: 'Drone đang bay tới địa chỉ giao hàng'
+      });
     } catch (error) {
-      console.error('Error generating OTP:', error);
+      console.error(`❌ [DRONE SIM] Order #${orderId} - Error generating/saving OTP:`, error);
+      throw error;
     }
   }
 

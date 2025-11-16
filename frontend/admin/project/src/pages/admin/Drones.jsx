@@ -96,16 +96,6 @@ export function AdminDrones() {
     }
   };
 
-  const handleSetIdle = async (droneId) => {
-    try {
-      await updateDrone(droneId, { status: 'IDLE' });
-      showToast('Đã đặt drone về IDLE', 'success');
-      fetchData();
-    } catch (error) {
-      showToast('Lỗi khi cập nhật drone', 'error');
-    }
-  };
-
 
   const columns = [
     { key: 'drone_id', header: 'ID', sortable: true },
@@ -129,7 +119,7 @@ export function AdminDrones() {
       header: 'Trạng thái',
       render: (d) => (
         <Badge 
-          status={d.status === 'BUSY' ? 'BUSY' : 'IDLE'} 
+          status={d.status} 
           type="drone" 
         />
       )
@@ -162,18 +152,6 @@ export function AdminDrones() {
             <Trash2 size={14} />
             Xóa
           </button>
-          {d.status === 'BUSY' && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSetIdle(d.drone_id);
-              }}
-              className="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-              title="Buộc drone về trạng thái nghỉ"
-            >
-              Đặt IDLE
-            </button>
-          )}
         </div>
       )
     }

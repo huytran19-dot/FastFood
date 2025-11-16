@@ -126,8 +126,8 @@ export const restaurantAPI = {
   },
 
   // Update restaurant info
-  async update(id, data) {
-    const response = await fetch(`${API_BASE_URL}/restaurants/${id}`, {
+  async update(data) {
+    const response = await fetch(`${API_BASE_URL}/restaurants/mine`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),

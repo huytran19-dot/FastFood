@@ -41,6 +41,11 @@ export default function TrackingPage() {
   const [verifying, setVerifying] = useState(false)
   const [dronePosition, setDronePosition] = useState(null)
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
   useEffect(() => {
     fetchOrderDetail()
     

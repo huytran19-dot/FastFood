@@ -11,15 +11,15 @@ router.get('/public', restaurantControllers.getPublicRestaurants);
 // This allows new restaurant owners to check if they have a restaurant
 router.get('/mine', authMiddleware, restaurantControllers.getMyRestaurant);
 
+// PUT /api/restaurants/mine - Update owner's restaurant (requires auth only)
+router.put('/mine', authMiddleware, restaurantControllers.updateMyRestaurant);
+
 // Protected routes - require authentication AND restaurant role
 router.use(authMiddleware);
 router.use(roleMiddleware(['restaurant']));
 
 // POST /api/restaurants - Create new restaurant
 router.post('/', restaurantControllers.createRestaurant);
-
-// PUT /api/restaurants/mine - Update owner's restaurant
-router.put('/mine', restaurantControllers.updateMyRestaurant);
 
 // GET /api/restaurants/stats - Get restaurant statistics
 router.get('/stats', restaurantControllers.getRestaurantStats);

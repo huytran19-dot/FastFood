@@ -41,13 +41,21 @@ export function Badge({ status, type = 'order' }) {
     if (type === 'drone') {
       switch (status) {
         case 'IDLE':
-          return 'bg-gray-100 text-gray-800';
+          return 'bg-green-100 text-green-800';
+        case 'ASSIGNED':
+          return 'bg-blue-100 text-blue-800';
+        case 'DELIVERING':
+          return 'bg-purple-100 text-purple-800';
+        case 'WAITING_OTP':
+          return 'bg-amber-100 text-amber-800';
+        case 'RETURNING':
+          return 'bg-indigo-100 text-indigo-800';
+        case 'BUSY':
+          return 'bg-orange-100 text-orange-800';
         case 'DISPATCHING':
           return 'bg-blue-100 text-blue-800';
         case 'EN_ROUTE':
           return 'bg-purple-100 text-purple-800';
-        case 'RETURNING':
-          return 'bg-amber-100 text-amber-800';
         case 'INACTIVE':
           return 'bg-red-100 text-red-800';
         default:
@@ -106,10 +114,13 @@ export function Badge({ status, type = 'order' }) {
     if (type === 'drone') {
       const statusMap = {
         'IDLE': 'Rảnh',
+        'ASSIGNED': 'Đã gán',
+        'DELIVERING': 'Đang giao',
+        'WAITING_OTP': 'Chờ OTP',
+        'RETURNING': 'Đang quay về',
         'BUSY': 'Đang bận',
         'DISPATCHING': 'Đang điều phối',
         'EN_ROUTE': 'Đang giao',
-        'RETURNING': 'Đang quay về',
         'INACTIVE': 'Không hoạt động'
       };
       return statusMap[status] || status;

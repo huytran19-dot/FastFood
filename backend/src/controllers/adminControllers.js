@@ -1,4 +1,5 @@
 const db = require('../models');
+const { getIO } = require('../socket/socketServer');
 
 // ===== USER MANAGEMENT =====
 
@@ -12,7 +13,7 @@ exports.getAllUsers = async (req, res) => {
         attributes: ['id', 'name']
       }],
       attributes: { exclude: ['password_hash'] },
-      order: [['created_at', 'DESC']]
+      order: [['id', 'ASC']] // Sort by ID ascending (small to large)
     });
 
     // Format response to match frontend expectations
@@ -61,6 +62,18 @@ exports.toggleUserStatus = async (req, res) => {
     }
 
     await user.update({ status });
+
+    // Emit Socket.IO event to force logout if user is being deactivated
+    if (status === 0) {
+      const io = getIO();
+      if (io) {
+        io.emit('user:account-locked', { 
+          userId: parseInt(id),
+          message: 'Tài khoản của bạn đã bị khóa bởi quản trị viên'
+        });
+        console.log(`🔒 [ADMIN] Emitted account-locked event for user #${id}`);
+      }
+    }
 
     res.json({ 
       message: `Cập nhật trạng thái thành công: ${status === 1 ? 'Active' : 'Inactive'}`,
@@ -337,9 +350,10 @@ exports.getAllDrones = async (req, res) => {
       order: [['id', 'ASC']]
     });
 
-    // Tất cả drone đều hiển thị là "Có thể sử dụng" (available)
+    // Format drones with actual status from database
     const formattedDrones = drones.map(drone => {
       const droneData = drone.toJSON();
+      const status = (droneData.status || 'IDLE').toLowerCase(); // Normalize to lowercase for comparison
       
       return {
         drone_id: droneData.id,
@@ -348,8 +362,8 @@ exports.getAllDrones = async (req, res) => {
         model: droneData.model,
         capacity: parseFloat(droneData.capacity),
         battery: parseFloat(droneData.battery),
-        status: 'IDLE', // Luôn hiển thị là IDLE
-        is_available: true // Luôn hiển thị là có thể sử dụng
+        status: status.toUpperCase(), // Display in uppercase for admin (IDLE, ASSIGNED, DELIVERING, etc.)
+        is_available: status === 'idle' // Available only when idle
       };
     });
 

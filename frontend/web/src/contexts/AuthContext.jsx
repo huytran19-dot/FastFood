@@ -1,8 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { io } from 'socket.io-client';
 
 const AuthContext = createContext(null);
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -13,6 +16,50 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     loadUser();
   }, []);
+
+  // Listen for account lock events via Socket.IO
+  useEffect(() => {
+    if (!user) return;
+
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 [AUTH] Connected to Socket.IO for account monitoring');
+    });
+
+    // Listen for account locked event
+    socket.on('user:account-locked', (data) => {
+      console.log('🔒 [AUTH] Received account-locked event:', data);
+      
+      // Check if this event is for current user
+      if (data.userId === user.id) {
+        console.log('🔒 [AUTH] Current user account locked, logging out...');
+        
+        // Force logout
+        authAPI.logout();
+        setUser(null);
+        
+        // Show notification
+        toast({
+          variant: 'destructive',
+          title: 'Tài khoản đã bị khóa',
+          description: data.message || 'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ hỗ trợ.',
+          duration: 10000,
+        });
+
+        // Redirect to login page after a short delay
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user, toast]);
 
   const loadUser = async () => {
     try {

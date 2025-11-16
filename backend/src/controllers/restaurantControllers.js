@@ -640,16 +640,18 @@ exports.getAvailableDrones = async (req, res) => {
     // Return all drones with their actual status from database
     const formattedDrones = drones.map(drone => {
       const droneData = drone.toJSON();
+      const status = (droneData.status || 'IDLE').toLowerCase(); // Normalize to lowercase for comparison
       return {
         id: droneData.id, // Use 'id' instead of 'drone_id' for consistency
         model: droneData.model,
         capacity: parseFloat(droneData.capacity),
         battery: parseFloat(droneData.battery),
-        status: droneData.status || 'idle', // Use actual status from DB
-        is_available: droneData.status === 'idle' || !droneData.status
+        status: status.toUpperCase(), // Return uppercase for frontend Badge component
+        is_available: status === 'idle'
       };
     });
 
+    console.log(`📡 Returning ${formattedDrones.length} drones:`, formattedDrones);
     res.json({ drones: formattedDrones });
   } catch (error) {
     console.error('Get available drones error:', error);
@@ -717,7 +719,9 @@ exports.assignOrderToDrone = async (req, res) => {
     }
 
     // Check if drone is already busy (assigned, delivering, waiting_otp, returning)
-    if (drone.status !== 'idle') {
+    // Normalize status to lowercase for comparison
+    const droneStatus = (drone.status || 'IDLE').toLowerCase();
+    if (droneStatus !== 'idle') {
       return res.status(400).json({ 
         message: `Drone ${drone.model} đang bận (${drone.status}). Vui lòng chọn drone khác có trạng thái "Rảnh".` 
       });

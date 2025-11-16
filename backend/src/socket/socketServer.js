@@ -19,8 +19,12 @@ function initializeSocketIO(httpServer) {
         'http://localhost:5173', // User web app
         'http://localhost:5174', // Admin app
         'http://localhost:5175', // Restaurant app
-        'http://localhost:5176', // Admin app (alternate)
-        'http://localhost:5178'  // Admin app (alternate 2)
+        'http://localhost:5176', // Web app (alternate)
+        'http://localhost:5177', // Admin app (alternate)
+        'http://localhost:5178', // Admin app (alternate 2)
+        'http://localhost:5179', // Admin app (alternate 3)
+        'http://localhost:5180', // Restaurant app (alternate)
+        'http://localhost:5181'  // Web app (alternate 2)
       ],
       methods: ['GET', 'POST'],
       credentials: true
