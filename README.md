@@ -1,212 +1,330 @@
-# FastFood - Hệ thống đặt đồ ăn nhanh
+# 🍔 FastFood - Hệ thống Giao Đồ Ăn Nhanh bằng Drone
 
-Hệ thống quản lý đồ ăn nhanh với 3 ứng dụng: Web người dùng, Dashboard nhà hàng và Admin panel.
+> Nền tảng đặt đồ ăn nhanh hiện đại với tính năng giao hàng bằng drone, tracking real-time và thanh toán VNPay.
 
-## 📁 Cấu trúc dự án
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18.3-blue.svg)](https://reactjs.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg)](https://www.mysql.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+---
+
+## 🌟 Tổng Quan
+
+**FastFood** là hệ thống đặt đồ ăn nhanh full-stack với 3 ứng dụng chính:
+
+| App | Port | Mô tả | Người dùng |
+|-----|------|-------|------------|
+| **Web Customer** | 5173 | Đặt món, tracking đơn hàng | Khách hàng |
+| **Restaurant Dashboard** | 5175 | Quản lý thực đơn, xử lý đơn | Chủ nhà hàng |
+| **Admin Panel** | 5174 | Quản trị hệ thống | Admin |
+| **Backend API** | 5000 | RESTful API + Socket.IO | Tất cả |
+
+### 🎯 Điểm Khác Biệt
+
+- ✅ **Giao hàng bằng Drone** - Tự động phân công & tracking real-time
+- ✅ **Thanh toán VNPay** - Tích hợp cổng thanh toán chính thức
+- ✅ **Real-time Updates** - Socket.IO cho tracking đơn hàng
+- ✅ **Map Integration** - Goong.io Maps API (Vietnam)
+- ✅ **Email Verification** - SendGrid authentication
+- ✅ **Image CDN** - Cloudinary upload & delivery
+- ✅ **Fallback Cache** - Redis + In-memory store
+
+---
+
+## ✨ Tính Năng Nổi Bật
+
+### 👤 Web Customer (Khách Hàng)
+
+#### Authentication & Profile
+- 📧 Đăng ký với xác thực email (SendGrid)
+- 🔐 Đăng nhập với JWT token (7 days)
+- 🔑 Reset password qua email
+- 👤 Quản lý thông tin cá nhân
+
+#### Shopping Experience
+- 🔍 Tìm kiếm nhà hàng gần nhất (Geolocation + Haversine)
+- 📱 Xem thực đơn theo danh mục
+- 🛒 Thêm món vào giỏ hàng
+- 💰 Tính tổng tự động, áp dụng khuyến mãi
+
+#### Order & Payment
+- 📦 Tạo đơn hàng với địa chỉ giao hàng
+- 💳 Thanh toán VNPay (ATM/QR/Visa)
+- 📜 Lịch sử đơn hàng với filter
+- 🚁 Tracking drone real-time trên map
+
+#### Delivery Tracking
+- 🗺️ Xem drone bay trên Leaflet map
+- 📍 Cập nhật vị trí mỗi 1 giây
+- ⚡ Progress bar + ETA countdown
+- 🔋 Hiển thị mức pin drone
+
+---
+
+### 🍔 Restaurant Dashboard (Nhà Hàng)
+
+#### Restaurant Management
+- 🏪 Đăng ký nhà hàng (chờ admin duyệt)
+- 📸 Upload logo nhà hàng (Cloudinary)
+- 🗺️ Đặt vị trí trên map (Goong API)
+- ⏰ Cấu hình giờ mở cửa
+
+#### Menu Management
+- 📋 Tạo danh mục thực đơn
+- 🍕 Thêm/Sửa/Xóa món ăn
+- 🖼️ Upload ảnh món ăn (max 5MB)
+- 💵 Cập nhật giá & tồn kho
+- 🔄 Bật/Tắt món ăn
+
+#### Order Processing
+- 🔔 Nhận thông báo đơn mới (Socket.IO)
+- ✅ Accept/Reject đơn hàng
+- 👨‍🍳 Cập nhật trạng thái nấu ăn
+- 📊 Thống kê doanh thu theo ngày/tháng
+
+#### Delivery Management
+- 🚁 Xem danh sách drone khả dụng
+- 🎯 Phân công đơn hàng cho drone
+- ▶️ Bắt đầu giao hàng (simulation)
+- 📡 Theo dõi drone real-time
+- 🏁 Xác nhận giao hàng thành công
+
+---
+
+### 👨‍💼 Admin Panel (Quản Trị)
+
+#### User Management
+- 👥 Danh sách người dùng + phân quyền
+- 🚫 Suspend/Activate tài khoản
+- 📊 Thống kê user mới theo ngày
+
+#### Restaurant Approval
+- 🏪 Duyệt/Từ chối nhà hàng mới
+- ✍️ Ghi chú lý do reject
+- 📧 Gửi email thông báo kết quả
+- 📈 Dashboard nhà hàng đang hoạt động
+
+#### Order Monitoring
+- 📦 Xem tất cả đơn hàng
+- 🔍 Filter theo trạng thái/ngày
+- 💰 Thống kê doanh thu tổng
+- 🚁 Giám sát drone hoạt động
+
+#### System Settings
+- ⚙️ Cấu hình hệ thống
+- 📊 View logs & analytics
+- 🗄️ Database backup
+
+
+---
+
+
+---
+
+## 🛠️ Tech Stack
+
+### Backend
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Node.js** | 18+ | Runtime environment |
+| **Express.js** | 4.18 | Web framework |
+| **Sequelize** | 6.35 | ORM for MySQL |
+| **MySQL** | 8.0 | Primary database |
+| **Redis** | 7.0 | Cache (optional) |
+| **Socket.IO** | 4.6 | Real-time communication |
+| **JWT** | 9.0 | Authentication |
+| **bcryptjs** | 2.4 | Password hashing |
+| **Multer** | 1.4 | File upload middleware |
+| **Nodemailer** | 6.9 | Email sending |
+
+### Frontend
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React** | 18.3 | UI framework |
+| **Vite** | 5.0 | Build tool |
+| **React Router** | 6.21 | Routing |
+| **Tailwind CSS** | 3.4 | Styling |
+| **Radix UI** | 1.0 | Component library |
+| **Leaflet** | 1.9 | Map rendering |
+| **Socket.IO Client** | 4.6 | Real-time client |
+| **React Query** | 5.0 | Data fetching |
+| **Zustand** | 4.5 | State management |
+
+### External Services
+
+| Service | Purpose | Config Required |
+|---------|---------|-----------------|
+| **VNPay** | Payment gateway | TMN_CODE, HASH_SECRET |
+| **SendGrid** | Email delivery | API_KEY, FROM_EMAIL |
+| **Cloudinary** | Image CDN | CLOUD_NAME, API_KEY, SECRET |
+| **Goong.io** | Vietnam maps | API_KEY |
+
+---
+
+### Phần Mềm
 
 ```
-FastFood/
-├── backend/                 # Node.js + Express + Sequelize + MySQL
-│   ├── src/
-│   │   ├── routes/         # Định nghĩa API endpoints
-│   │   ├── controllers/    # Xử lý request/response
-│   │   ├── services/       # Business logic
-│   │   ├── models/         # Sequelize models
-│   │   └── config/         # Cấu hình DB, email
-│   └── .env                # Biến môi trường
-│
-└── frontend/
-    ├── web/                # App người dùng (port 5173)
-    ├── restaurant/         # Dashboard nhà hàng (port 5175)
-    └── admin/project/      # Admin panel (port 5174)
+✅ Node.js 18.0.0 trở lên
+✅ MySQL 8.0 trở lên
+✅ npm 9.0+ hoặc yarn 1.22+
+✅ Git 2.30+
+⚪ Redis 7.0+ (optional, fallback to memory)
 ```
 
-## 🚀 Khởi chạy dự án
+---
 
-### Yêu cầu
-- Node.js 16+
-- MySQL 8.0+
-- npm 
+## 📦 Cài Đặt
 
-### Bước 1: Cài đặt dependencies
+### 1. Clone Repository
 
 ```bash
-# Backend
+git clone https://github.com/huytran19-dot/FastFood.git
+cd FastFood
+```
+
+### 2. Cài Đặt Backend
+
+```bash
 cd backend
 npm install
+```
 
-# Frontend Web
+**Danh sách dependencies chính:**
+```json
+{
+  "express": "^4.18.2",
+  "sequelize": "^6.35.2",
+  "mysql2": "^3.6.5",
+  "socket.io": "^4.6.0",
+  "jsonwebtoken": "^9.0.2",
+  "bcryptjs": "^2.4.3",
+  "multer": "^1.4.5-lts.1",
+  "cloudinary": "^1.41.0",
+  "dotenv": "^16.3.1",
+  "cors": "^2.8.5"
+}
+```
+
+### 3. Cài Đặt Frontend Apps
+
+```bash
+# Web Customer
 cd frontend/web
 npm install
 
-# Frontend Restaurant
-cd frontend/restaurant
+# Restaurant Dashboard
+cd ../restaurant
 npm install
 
-# Frontend Admin
-cd frontend/admin/project
+# Admin Panel
+cd ../admin/project
 npm install
 ```
 
-### Bước 2: Cấu hình môi trường
+---
 
-Tạo file `backend/.env`:
+## ⚙️ Cấu Hình
 
-```env
-# Database
-DB_HOST=localhost
-DB_PORT=3307
-DB_NAME=fastfood
-DB_USER=root
-DB_PASSWORD=your_password
-
-# JWT
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=7d
-
-# SendGrid Email
-SENDGRID_API_KEY=your_sendgrid_key
-SENDGRID_FROM_EMAIL=noreply@yourdomain.com
-
-# Cloudinary (Upload ảnh)
-CLOUD_NAME=your_cloud_name
-CLOUD_API_KEY=your_api_key
-CLOUD_API_SECRET=your_api_secret
-
-# Server
-PORT=5000
-```
-
-### Bước 3: Khởi tạo database
+### 1. Tạo File `.env` trong Backend
 
 ```bash
-# Import schema từ fastfood-DB.txt vào MySQL
+cd backend
+copy .env.example .env
+# Hoặc trên Linux/Mac: cp .env.example .env
+```
+
+
+### 3. Khởi Tạo Database
+
+```bash
+# Import database
 mysql -u root -p fastfood < fastfood-DB.txt
 ```
 
-### Bước 4: Chạy ứng dụng
+---
+
+## 🚀 Khởi Chạy
+
+### Development Mode
+
+Mở **4 terminal** và chạy:
 
 ```bash
-# Terminal 1 - Backend (port 5000)
+# Terminal 1: Backend API
 cd backend
 npm run dev
+# ✅ Server running on http://localhost:5000
 
-# Terminal 2 - Frontend Web (port 5173)
+# Terminal 2: Web Customer
 cd frontend/web
 npm run dev
+# ✅ Customer app: http://localhost:5173
 
-# Terminal 3 - Frontend Restaurant (port 5175)
+# Terminal 3: Restaurant Dashboard
 cd frontend/restaurant
 npm run dev
+# ✅ Restaurant app: http://localhost:5175
 
-# Terminal 4 - Frontend Admin (port 5174)
+# Terminal 4: Admin Panel
 cd frontend/admin/project
 npm run dev
+# ✅ Admin app: http://localhost:5174
 ```
 
-## � Tính năng chính
+### Production Build
 
-### 👤 Web người dùng
-- Đăng ký/Đăng nhập với xác thực email
-- Xem thực đơn và đặt món
-- Theo dõi đơn hàng
-- Quản lý thông tin cá nhân
+```bash
+# Build Frontend Apps
+cd frontend/web
+npm run build
 
-### 🍔 Dashboard nhà hàng
-- Đăng ký nhà hàng (chờ admin duyệt)
-- Quản lý thực đơn
-- Xử lý đơn hàng
-- Theo dõi giao hàng
+cd ../restaurant
+npm run build
 
-### 👨‍💼 Admin panel
-- Quản lý người dùng
-- Duyệt/Từ chối nhà hàng
-- Giám sát hệ thống
+cd ../admin/project
+npm run build
 
-## 📚 API Routes
+# Start Backend
+cd ../../../backend
+npm start
+```
 
-### User Authentication
-- `POST /api/auth/register` - Đăng ký người dùng
-- `POST /api/auth/login` - Đăng nhập
-- `GET /api/auth/verify-email/:token` - Xác thực email
+---
 
-### Restaurant Authentication
-- `POST /api/restaurant-auth/register` - Đăng ký nhà hàng
-- `POST /api/restaurant-auth/login` - Đăng nhập nhà hàng
 
-### Admin Authentication
-- `POST /api/admin-auth/login` - Đăng nhập admin
-- `GET /api/admin-auth/users` - Danh sách users
-- `GET /api/admin-auth/restaurants` - Danh sách nhà hàng
-- `PUT /api/admin-auth/restaurants/:id/review` - Duyệt nhà hàng
 
-### Upload
-- `POST /api/upload` - Upload ảnh lên Cloudinary
+## 🐛 Troubleshooting
 
-## � Tech Stack
+### Common Issues
 
-### Backend
-- **Framework**: Express.js
-- **ORM**: Sequelize
-- **Database**: MySQL
-- **Auth**: bcryptjs + JWT
-- **Email**: SendGrid
-- **Upload**: Cloudinary
+#### "Cannot connect to MySQL"
+```bash
+# Check MySQL is running
+mysql -u root -p
 
-### Frontend
-- **Framework**: React 18
-- **Build**: Vite 5
-- **UI**: Tailwind CSS + Radix UI
-- **Routing**: React Router
-- **State**: Context API
+# Verify .env configs
+DB_HOST=127.0.0.1
+DB_PORT=3307
+```
 
-## � Database Schema
+#### "Redis connection refused"
+```
+⚠️ Redis is optional - app auto-fallback to memory store
+```
 
-Các bảng chính:
-- `users` - Người dùng (email_verified, role_id)
-- `restaurants` - Nhà hàng (review_status: PENDING/APPROVED/REJECTED)
-- `roles` - Phân quyền (admin/restaurant/user)
-- `menu_items` - Thực đơn
-- `orders` - Đơn hàng
-- `order_items` - Chi tiết đơn hàng
-- `deliveries` - Giao hàng
-- `drones` - Drone giao hàng
-- `payments` - Thanh toán
+#### "CORS blocked"
+```bash
+# Backend .env must include frontend origins
+CORS_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175
+```
 
-## 🔧 Cấu hình quan trọng
+---
 
-### Email Verification
-- Chỉ áp dụng cho user đăng ký
-- Token hết hạn sau 24 giờ
-- Gửi qua SendGrid
+<div align="center">
 
-### Restaurant Approval
-- Trạng thái mặc định: PENDING
-- Admin có thể APPROVED/REJECTED
-- Chỉ nhà hàng được duyệt mới truy cập dashboard
+[⬆ Back to top](#-fastfood---hệ-thống-giao-đồ-ăn-nhanh-bằng-drone)
 
-### Upload Images
-- Sử dụng Cloudinary
-- Cần cấu hình credentials trong .env
-- Hỗ trợ jpg, png, jpeg
-
-## 🐛 Debugging
-
-### Backend không khởi động
-- Kiểm tra MySQL đã chạy chưa
-- Xem file .env có đầy đủ không
-- Check log trong terminal
-
-### Frontend không kết nối API
-- Backend phải chạy trước (port 5000)
-- Kiểm tra CORS settings
-- Xem DevTools Console
-
-### Email không gửi được
-- Verify SENDGRID_API_KEY
-- Check spam folder
-- Xem log backend
-
-## 📄 License
-
-MIT
+</div>
