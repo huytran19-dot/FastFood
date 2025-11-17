@@ -6,6 +6,9 @@ import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/FormControls';
 import { useToast } from '../../components/ui/Toast';
 import { getDrones, createDrone, updateDrone, deleteDrone, getRestaurants } from '../../api/admin';
+import { io } from 'socket.io-client';
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 export function AdminDrones() {
   const [drones, setDrones] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
@@ -42,6 +45,37 @@ export function AdminDrones() {
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  // Socket.IO - Listen for drone status updates
+  useEffect(() => {
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 [Admin Drones] Connected to Socket.IO');
+    });
+
+    // Listen for drone status updates
+    socket.on('drone:status:update', (data) => {
+      console.log('📢 [Admin Drones] Drone status updated:', data);
+      
+      // Update specific drone in list
+      setDrones(prevDrones => prevDrones.map(drone => 
+        drone.drone_id === data.droneId 
+          ? { ...drone, status: data.status }
+          : drone
+      ));
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 [Admin Drones] Disconnected');
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const handleSubmit = async (e) => {

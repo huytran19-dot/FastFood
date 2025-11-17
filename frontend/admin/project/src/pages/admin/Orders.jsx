@@ -4,6 +4,9 @@ import { Badge } from '../../components/ui/Badge';
 import { Drawer } from '../../components/ui/Drawer';
 import { getOrders, getRestaurants } from '../../api/admin';
 import { getOrderItems } from '../../api/restaurant';
+import { io } from 'socket.io-client';
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 export function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -32,6 +35,33 @@ export function AdminOrders() {
   useEffect(() => {
     fetchData();
   }, [selectedRestaurantId]);
+
+  // Socket.IO - Listen for new orders
+  useEffect(() => {
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 [Admin Orders] Connected to Socket.IO');
+    });
+
+    // Listen for new orders
+    socket.on('restaurant:new-order', (data) => {
+      console.log('📢 [Admin Orders] Received new order:', data);
+      
+      // Reload orders list
+      fetchData();
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 [Admin Orders] Disconnected from Socket.IO');
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const handleRowClick = async (order) => {
     setSelectedOrder(order);
