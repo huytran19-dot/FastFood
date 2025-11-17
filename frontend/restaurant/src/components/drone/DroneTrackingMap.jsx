@@ -16,14 +16,30 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Custom drone icon
-const droneIcon = L.icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+// Custom drone icon - Plane style
+const droneIcon = L.divIcon({
+  className: 'custom-drone-marker',
+  html: `
+    <div style="
+      width: 40px; 
+      height: 40px; 
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+      border: 3px solid white;
+      animation: pulse 2s infinite;
+    ">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+        <path d="M20.56 3.91C21.15 4.5 21.15 5.45 20.56 6.03L16.67 9.92L18.79 19.11L17.38 20.53L13.5 13.1L9.6 17L9.96 19.47L8.89 20.53L7.13 17.35L3.94 15.58L5 14.5L7.5 14.87L11.37 11L3.94 7.09L5.36 5.68L14.55 7.8L18.44 3.91C19.02 3.33 19.98 3.33 20.56 3.91Z"/>
+      </svg>
+    </div>
+  `,
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+  popupAnchor: [0, -20],
 });
 
 const restaurantIcon = L.icon({
@@ -336,7 +352,7 @@ export default function DroneTrackingMap({
     if (droneStatus === 'RETURNING' || droneStatus === 'returning') {
       return { color: 'purple', label: 'Đang quay về nhà hàng' };
     }
-    if (droneStatus === 'idle' || droneStatus === 'AT_RESTAURANT') {
+    if (droneStatus?.toLowerCase() === 'idle' || droneStatus === 'AT_RESTAURANT') {
       return { color: 'green', label: 'Đã về nhà hàng - Rảnh' };
     }
     if (droneStatus === 'ready_to_return' || droneStatus === 'COMPLETED_WAITING_RETURN') {

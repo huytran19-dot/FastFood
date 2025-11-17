@@ -21,6 +21,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import Modal from '@/components/ui/modal';
 import { orderAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { io } from 'socket.io-client';
+import { useAuth } from '@/contexts/AuthContext';
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 const statusConfig = {
   PENDING: {
@@ -81,10 +85,49 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const { toast } = useToast();
+  const { restaurant } = useAuth();
 
   useEffect(() => {
     fetchOrders();
   }, [selectedStatus]);
+
+  // Socket.IO - Listen for new orders
+  useEffect(() => {
+    if (!restaurant?.id) return;
+
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 [Orders] Connected to Socket.IO');
+    });
+
+    // Listen for new orders
+    socket.on('restaurant:new-order', (data) => {
+      console.log('📢 [Orders] Received new order:', data);
+      
+      // Check if this order is for current restaurant
+      if (data.restaurantId === restaurant.id) {
+        toast({
+          title: '🔔 Đơn hàng mới!',
+          description: `Khách hàng ${data.customerName} vừa đặt đơn hàng #${data.orderId}`,
+          duration: 5000,
+        });
+        
+        // Reload orders list
+        fetchOrders();
+      }
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 [Orders] Disconnected from Socket.IO');
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [restaurant?.id, toast]);
 
   const fetchOrders = async () => {
     try {

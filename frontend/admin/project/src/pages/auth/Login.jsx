@@ -86,15 +86,9 @@ export function Login() {
           <div className="mt-3 text-sm">
             <div className="bg-gray-50 p-3 rounded-lg">
               <p className="font-medium text-gray-900">Admin</p>
-              <p className="text-gray-600">admin@fastfood.com / admin123</p>
+              <p className="text-gray-600">admin@fastfood.vn / admin1</p>
             </div>
           </div>
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Chủ nhà hàng vui lòng đăng nhập tại <br/>
-            <a href="http://localhost:5175" target="_blank" rel="noopener noreferrer" className="font-medium text-[#FF4D4F] hover:underline">
-              http://localhost:5175
-            </a>
-          </p>
         </div>
       </div>
     </div>

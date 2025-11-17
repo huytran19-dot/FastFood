@@ -203,7 +203,7 @@ export default function DroneControlPage() {
                   description: `Đơn #${order.id} - Drone đang bay về nhà hàng`,
                   duration: 5000,
                 };
-              } else if (data.status === 'COMPLETED' && data.droneStatus === 'idle') {
+              } else if (data.status === 'COMPLETED' && data.droneStatus?.toLowerCase() === 'idle') {
                 // NOW remove order - drone has returned to restaurant
                 shouldRemoveOrder = true;
                 
@@ -469,7 +469,7 @@ export default function DroneControlPage() {
                   'waiting_otp': { text: 'Chờ OTP', color: 'bg-purple-100 text-purple-700' },
                   'returning': { text: 'Đang về', color: 'bg-yellow-100 text-yellow-700' }
                 };
-                const droneStatus = statusMap[drone.status] || statusMap['idle'];
+                const droneStatus = statusMap[drone.status?.toLowerCase()] || statusMap['idle'];
 
                 return (
                   <div 
@@ -752,12 +752,12 @@ export default function DroneControlPage() {
                   <SelectValue placeholder="Chọn drone để gán đơn hàng" />
                 </SelectTrigger>
                 <SelectContent>
-                  {drones.filter(drone => drone.status === 'idle').map(drone => (
+                  {drones.filter(drone => drone.status?.toLowerCase() === 'idle').map(drone => (
                     <SelectItem key={drone.id} value={String(drone.id)}>
                       {drone.model} - Sức chứa: {drone.capacity}kg - Rảnh
                     </SelectItem>
                   ))}
-                  {drones.filter(drone => drone.status === 'idle').length === 0 && (
+                  {drones.filter(drone => drone.status?.toLowerCase() === 'idle').length === 0 && (
                     <div className="px-2 py-4 text-center text-sm text-gray-500">
                       Hiện không có drone rảnh. Vui lòng đợi...
                     </div>

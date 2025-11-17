@@ -74,12 +74,23 @@ class OrderController {
       // Clear giỏ hàng sau khi tạo đơn thành công
       await cartService.clearCart(req.user.id);
 
-      // Emit socket event for new order
-      emitOrderUpdate(order.id, {
-        status: order.status,
-        message: 'Đơn hàng mới đã được tạo',
-        customerId: req.user.id
-      });
+      // Emit socket event for new order - notify restaurant
+      const { getIO } = require('../socket/socketServer');
+      const io = getIO();
+      if (io) {
+        // Emit to restaurant-specific room
+        io.emit('restaurant:new-order', {
+          orderId: order.id,
+          restaurantId: restaurant_id,
+          status: order.status,
+          totalPrice: total_price + delivery_fee,
+          customerName: delivery_name,
+          deliveryAddress: delivery_address,
+          message: 'Đơn hàng mới đã được tạo'
+        });
+        
+        console.log(`📢 [Socket] Emitted new order #${order.id} to restaurant #${restaurant_id}`);
+      }
 
       // Chỉ hỗ trợ COD
       // Nếu thanh toán COD, trả về kết quả

@@ -154,9 +154,9 @@ async function startDroneSimulation(droneId, orderId, routePoints, options = {})
         if (isReturning) {
           // Arrived at restaurant - set drone to idle
           try {
-            // Update drone status to idle
-            await drones.update(
-              { status: 'idle' },
+            // Update drone status to IDLE
+            await db.drones.update(
+              { status: 'IDLE' },
               { where: { id: droneId } }
             );
             
