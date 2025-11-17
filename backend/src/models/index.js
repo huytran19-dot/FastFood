@@ -1,23 +1,16 @@
 const { Sequelize } = require('sequelize');
-const config = require('../config/config.json');
+require('dotenv').config();
 const initModels = require('./init-models');
 
-const env = process.env.NODE_ENV || 'development';
-const dbConfig = config[env] || {};
-
-// Allow overriding DB host/port via environment for local docker setups
-const DB_HOST = process.env.DB_HOST || dbConfig.host || '127.0.0.1';
-const DB_PORT = process.env.DB_PORT || dbConfig.port || 3307;
-
-// Initialize Sequelize
+// Use environment variables directly (Railway MySQL)
 const sequelize = new Sequelize(
-  dbConfig.database,
-  dbConfig.username,
-  dbConfig.password,
+  process.env.DB_NAME || 'railway',
+  process.env.DB_USER || 'root',
+  process.env.DB_PASSWORD || '',
   {
-    host: DB_HOST,
-    port: DB_PORT,
-    dialect: dbConfig.dialect,
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 3306,
+    dialect: 'mysql',
     logging: false, // set to console.log to see SQL queries
     pool: {
       max: 5,
