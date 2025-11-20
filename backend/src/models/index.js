@@ -11,6 +11,14 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT) || 3306,
     dialect: 'mysql',
+    dialectOptions: {
+      charset: 'utf8mb4',
+      collate: 'utf8mb4_unicode_ci'
+    },
+    define: {
+      charset: 'utf8mb4',
+      collate: 'utf8mb4_unicode_ci'
+    },
     logging: false, // set to console.log to see SQL queries
     pool: {
       max: 5,

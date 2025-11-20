@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Store, Clock, MapPin, Phone, Image as ImageIcon, FileText } from "lucide-react"
+import { Store, Clock, MapPin, Phone, Image as ImageIcon, FileText, Upload, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ import LocationPickerWithAddress from "@/components/map/LocationPickerWithAddres
 
 export default function RestaurantRegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const { user } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -44,6 +45,78 @@ export default function RestaurantRegisterPage() {
       lng: lng
     }))
   }
+
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Lỗi",
+        description: "Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WEBP)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Lỗi",
+        description: "Kích thước file không được vượt quá 10MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      // Create FormData
+      const formDataObj = new FormData();
+      formDataObj.append('image', file);
+      formDataObj.append('folder', 'restaurants');
+
+      // Get auth token
+      const token = localStorage.getItem('token');
+      
+      // Upload to backend
+      const response = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formDataObj
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.image_url) {
+        setFormData({ ...formData, image_url: data.image_url });
+        
+        toast({
+          title: "Thành công",
+          description: "Đã tải ảnh lên thành công"
+        });
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể tải ảnh lên",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -183,23 +256,111 @@ export default function RestaurantRegisterPage() {
                 />
               </div>
 
-              {/* Image URL */}
+              {/* Image Upload */}
               <div>
-                <Label htmlFor="image_url" className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 mb-2">
                   <ImageIcon className="h-4 w-4" />
-                  Link ảnh nhà hàng (Tuỳ chọn)
+                  Hình ảnh nhà hàng
                 </Label>
-                <Input 
-                  id="image_url" 
-                  type="url"
-                  placeholder="https://example.com/restaurant-logo.jpg" 
-                  value={formData.image_url}
-                  onChange={handleChange}
-                  className="mt-2"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Cung cấp link ảnh logo hoặc banner nhà hàng
-                </p>
+                <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  uploading ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-orange-500 cursor-pointer'
+                }`}
+                onClick={() => {
+                  if (!uploading && !formData.image_url) {
+                    document.getElementById('restaurant-image-upload')?.click();
+                  }
+                }}
+                >
+                  {uploading ? (
+                    <div className="space-y-3">
+                      <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                      <p className="text-sm text-gray-600">Đang tải ảnh lên...</p>
+                    </div>
+                  ) : formData.image_url ? (
+                    <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="relative">
+                        <img
+                          src={formData.image_url}
+                          alt="Preview"
+                          className="w-full h-48 object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.src = 'https://placehold.co/400x300/png?text=Error';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, image_url: '' })}
+                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-lg"
+                          disabled={uploading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {/* Display URL */}
+                      <div className="text-left">
+                        <p className="text-xs text-gray-500 font-medium mb-1">URL hình ảnh:</p>
+                        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200">
+                          <input
+                            type="text"
+                            value={formData.image_url}
+                            readOnly
+                            className="flex-1 text-xs bg-transparent border-none focus:outline-none text-gray-700"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(formData.image_url);
+                              toast({
+                                title: "Đã copy",
+                                description: "URL đã được copy vào clipboard"
+                              });
+                            }}
+                            className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Upload className="h-12 w-12 mx-auto text-gray-400" />
+                      <div className="text-sm text-gray-600">
+                        <span className="text-orange-600 hover:text-orange-700 font-medium">
+                          Chọn ảnh từ máy tính
+                        </span>
+                        <input
+                          id="restaurant-image-upload"
+                          type="file"
+                          className="hidden"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          disabled={uploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleImageUpload(file);
+                              e.target.value = ''; // Reset input để có thể chọn lại cùng file
+                            }
+                          }}
+                        />
+                        <span> hoặc kéo thả ảnh vào đây</span>
+                      </div>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF, WEBP tối đa 10MB</p>
+                    </div>
+                  )}
+                </div>
+                {/* Manual URL input */}
+                {!formData.image_url && (
+                  <div className="mt-3">
+                    <Input
+                      type="url"
+                      placeholder="Hoặc nhập URL hình ảnh trực tiếp"
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                      disabled={uploading}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Operating Hours */}
