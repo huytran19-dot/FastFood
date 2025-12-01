@@ -7,7 +7,8 @@ class PublicService {
     try {
       const restaurantList = await restaurants.findAll({
         where: {
-          review_status: 'APPROVED'
+          review_status: 'APPROVED',
+          status: 1  // Only active restaurants
         },
         attributes: ['id', 'name', 'address', 'phone', 'image_url', 'rating', 'lat', 'lng', 'created_at'],
         order: [['rating', 'DESC'], ['created_at', 'DESC']]
@@ -25,7 +26,8 @@ class PublicService {
       const restaurant = await restaurants.findOne({
         where: {
           id: restaurantId,
-          review_status: 'APPROVED'
+          review_status: 'APPROVED',
+          status: 1  // Only active restaurants
         },
         attributes: ['id', 'name', 'address', 'phone', 'image_url', 'rating', 'description', 'lat', 'lng', 'created_at']
       });
@@ -47,7 +49,8 @@ class PublicService {
       const restaurant = await restaurants.findOne({
         where: {
           id: restaurantId,
-          review_status: 'APPROVED'
+          review_status: 'APPROVED',
+          status: 1  // Only active restaurants
         }
       });
 
@@ -98,7 +101,8 @@ class PublicService {
       const restaurant = await restaurants.findOne({
         where: {
           id: restaurantId,
-          review_status: 'APPROVED'
+          review_status: 'APPROVED',
+          status: 1  // Only active restaurants
         }
       });
 

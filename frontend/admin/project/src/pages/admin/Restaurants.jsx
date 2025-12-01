@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Check, X, Store } from 'lucide-react';
+import { Check, X, Store, Trash2 } from 'lucide-react';
 import { DataTable } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Textarea } from '../../components/ui/FormControls';
 import { useToast } from '../../components/ui/Toast';
-import { getRestaurants, getUsers, approveRestaurant, rejectRestaurant } from '../../api/admin';
+import { getRestaurants, getUsers, approveRestaurant, rejectRestaurant, deleteRestaurant } from '../../api/admin';
 import RestaurantMap from '../../components/map/RestaurantMap';
 
 export function AdminRestaurants() {
@@ -14,8 +14,10 @@ export function AdminRestaurants() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [deleteError, setDeleteError] = useState(null);
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
 
   const { showToast } = useToast();
@@ -98,6 +100,26 @@ export function AdminRestaurants() {
     } catch (error) {
       showToast('Lỗi khi từ chối nhà hàng', 'error');
     }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteRestaurant(selectedRestaurant.restaurant_id);
+      showToast(`Đã xóa nhà hàng: ${selectedRestaurant.name}`, 'success');
+      setIsDeleteModalOpen(false);
+      setDeleteError(null);
+      setSelectedRestaurant(null);
+      fetchData();
+    } catch (error) {
+      // Show error in dialog instead of toast
+      setDeleteError(error.message);
+    }
+  };
+
+  const openDeleteModal = (restaurant) => {
+    setSelectedRestaurant(restaurant);
+    setDeleteError(null);
+    setIsDeleteModalOpen(true);
   };
 
   const getStatusBadge = (status) => {
@@ -337,16 +359,28 @@ export function AdminRestaurants() {
       key: 'actions',
       header: 'Thao tác',
       render: (r) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedRestaurant(r);
-            setIsDetailModalOpen(true);
-          }}
-          className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-        >
-          Xem chi tiết
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedRestaurant(r);
+              setIsDetailModalOpen(true);
+            }}
+            className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+          >
+            Xem chi tiết
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openDeleteModal(r);
+            }}
+            className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center gap-1"
+            title="Xóa nhà hàng"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       )
     }
   ];
@@ -672,6 +706,81 @@ export function AdminRestaurants() {
             >
               Xác nhận từ chối
             </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Restaurant Modal */}
+      <Modal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteError(null);
+          setSelectedRestaurant(null);
+        }} 
+        title="Xóa nhà hàng"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Bạn có chắc muốn xóa nhà hàng <strong>{selectedRestaurant?.name}</strong>?
+          </p>
+          
+          {deleteError ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-red-800 mb-1">Không thể xóa nhà hàng</h3>
+                  <p className="text-sm text-red-700">{deleteError}</p>
+                  <p className="text-xs text-red-600 mt-2">
+                    <strong>Giải pháp:</strong> Bạn có thể vô hiệu hóa nhà hàng thay vì xóa để giữ lại dữ liệu lịch sử giao dịch.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-yellow-800">Cảnh báo</h3>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Hành động này sẽ xóa vĩnh viễn nhà hàng và tất cả dữ liệu liên quan (menu, danh mục, giỏ hàng). 
+                    <strong className="block mt-1">Không thể hoàn tác!</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setIsDeleteModalOpen(false);
+                setDeleteError(null);
+                setSelectedRestaurant(null);
+              }}
+              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Hủy
+            </button>
+            {!deleteError && (
+              <button
+                onClick={handleDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Xác nhận xóa
+              </button>
+            )}
           </div>
         </div>
       </Modal>

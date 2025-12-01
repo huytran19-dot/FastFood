@@ -14,7 +14,6 @@ async function initRedis() {
       require.resolve('redis');
     } catch (e) {
       // Redis module not installed, silently skip
-      console.log('ℹ️  Redis module not installed, using in-memory cache');
       isConnected = false;
       return;
     }
@@ -30,23 +29,18 @@ async function initRedis() {
         socket: {
           host: REDIS_HOST,
           port: REDIS_PORT,
-          reconnectStrategy: (retries) => {
-            if (retries > 10) {
-              console.warn('⚠️ Redis: Max retries reached, continuing without Redis');
-              return false;
-            }
-            return Math.min(retries * 100, 3000);
-          }
+          connectTimeout: 2000,
+          reconnectStrategy: false // Disable reconnection
         }
       });
 
-      redisClient.on('error', (err) => {
-        console.warn('⚠️ Redis Client Error:', err.message);
+      // Suppress error logging
+      redisClient.on('error', () => {
+        // Silently ignore errors
         isConnected = false;
       });
 
       redisClient.on('connect', () => {
-        console.log('✅ Redis connected');
         isConnected = true;
       });
 
@@ -57,33 +51,24 @@ async function initRedis() {
       // Connect to Redis (async for v4+)
       try {
         await redisClient.connect();
+        console.log('✅ Redis connected');
         isConnected = true;
       } catch (error) {
-        console.warn('⚠️ Redis connection failed, continuing without Redis:', error.message);
+        // Redis not available, use memory store silently
         isConnected = false;
+        redisClient = null;
       }
     } catch (error) {
       // Fallback: try v3 style
       redisClient = redis.createClient({
         host: REDIS_HOST,
         port: REDIS_PORT,
-        retry_strategy: (options) => {
-          if (options.error && options.error.code === 'ECONNREFUSED') {
-            console.warn('⚠️ Redis connection refused, continuing without Redis');
-            return null;
-          }
-          if (options.total_retry_time > 1000 * 60 * 60) {
-            return new Error('Retry time exhausted');
-          }
-          if (options.attempt > 10) {
-            return undefined;
-          }
-          return Math.min(options.attempt * 100, 3000);
-        }
+        retry_strategy: () => null, // No retry
+        enable_offline_queue: false
       });
 
-      redisClient.on('error', (err) => {
-        console.warn('⚠️ Redis Client Error:', err.message);
+      redisClient.on('error', () => {
+        // Silently ignore errors
         isConnected = false;
       });
 
@@ -93,10 +78,7 @@ async function initRedis() {
       });
     }
   } catch (error) {
-    // Only log if it's not a module not found error
-    if (!error.message.includes('Cannot find module')) {
-      console.warn('⚠️ Redis initialization error:', error.message);
-    }
+    // Silently fail
     isConnected = false;
   }
 }
@@ -144,13 +126,11 @@ async function setJson(key, value, expireSeconds = null) {
       }
       return true;
     } catch (error) {
-      console.error('Redis setJson error, falling back to memory:', error.message);
-      // Fall through to memory store
+      // Silently fall through to memory store
     }
   }
   
   // Fallback to in-memory store
-  console.log(`💾 [MemoryStore] Storing ${key} (Redis unavailable)`);
   return memoryStore.setMemory(key, value, expireSeconds);
 }
 
@@ -178,17 +158,12 @@ async function getJson(key) {
         return JSON.parse(value);
       }
     } catch (error) {
-      console.error('Redis getJson error, falling back to memory:', error.message);
-      // Fall through to memory store
+      // Silently fall through to memory store
     }
   }
   
   // Fallback to in-memory store
-  const memoryValue = memoryStore.getMemory(key);
-  if (memoryValue) {
-    console.log(`💾 [MemoryStore] Retrieved ${key} from memory (Redis unavailable)`);
-  }
-  return memoryValue;
+  return memoryStore.getMemory(key);
 }
 
 module.exports = {

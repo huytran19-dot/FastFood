@@ -18,6 +18,7 @@ router.get('/restaurants', adminControllers.getAllRestaurants);
 router.put('/restaurants/:id/approve', adminControllers.approveRestaurant);
 router.put('/restaurants/:id/reject', adminControllers.rejectRestaurant);
 router.put('/restaurants/:id/toggle-status', adminControllers.toggleRestaurantStatus);
+router.delete('/restaurants/:id', adminControllers.deleteRestaurant);
 
 // ===== ORDER MANAGEMENT =====
 router.get('/orders', adminControllers.getAllOrders);

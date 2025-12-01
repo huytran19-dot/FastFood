@@ -210,7 +210,10 @@ exports.getRestaurantStats = async (req, res) => {
 exports.getPublicRestaurants = async (req, res) => {
   try {
     const restaurants = await db.restaurants.findAll({
-      where: { review_status: 'APPROVED' }
+      where: { 
+        review_status: 'APPROVED',
+        status: 1  // Only show active restaurants
+      }
     });
 
     res.json(restaurants);
@@ -245,6 +248,7 @@ exports.getNearbyRestaurants = async (req, res) => {
     const restaurants = await db.restaurants.findAll({
       where: { 
         review_status: 'APPROVED',
+        status: 1,  // Only active restaurants
         lat: { [db.Sequelize.Op.ne]: null },
         lng: { [db.Sequelize.Op.ne]: null }
       },

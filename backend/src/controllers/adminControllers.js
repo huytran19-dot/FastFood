@@ -238,6 +238,82 @@ exports.toggleRestaurantStatus = async (req, res) => {
   }
 };
 
+// DELETE /api/admin/restaurants/:id - Delete restaurant (with validation)
+exports.deleteRestaurant = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const restaurant = await db.restaurants.findByPk(id);
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Không tìm thấy nhà hàng' });
+    }
+
+    // Check for existing orders
+    const orderCount = await db.orders.count({
+      where: { restaurant_id: id }
+    });
+
+    if (orderCount > 0) {
+      return res.status(400).json({ 
+        message: 'Không thể xóa nhà hàng',
+        reason: `Nhà hàng này đang có ${orderCount} đơn hàng trong hệ thống. Vui lòng vô hiệu hóa thay vì xóa.`,
+        canDelete: false,
+        orderCount: orderCount
+      });
+    }
+
+    // Check for active deliveries
+    const activeDeliveryCount = await db.orders.count({
+      where: { 
+        restaurant_id: id,
+        status: {
+          [db.Sequelize.Op.in]: ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERING', 'WAITING_OTP']
+        }
+      }
+    });
+
+    if (activeDeliveryCount > 0) {
+      return res.status(400).json({ 
+        message: 'Không thể xóa nhà hàng',
+        reason: `Nhà hàng này đang có ${activeDeliveryCount} đơn hàng đang được xử lý. Vui lòng đợi hoàn thành hoặc hủy các đơn hàng trước.`,
+        canDelete: false,
+        activeDeliveryCount: activeDeliveryCount
+      });
+    }
+
+    // Check for menu items
+    const menuItemCount = await db.menu_items.count({
+      where: { restaurant_id: id }
+    });
+
+    // Delete related data first (cascade)
+    if (menuItemCount > 0) {
+      await db.menu_items.destroy({ where: { restaurant_id: id } });
+    }
+
+    // Delete categories
+    await db.categories.destroy({ where: { restaurant_id: id } });
+
+    // Delete carts
+    await db.carts.destroy({ where: { restaurant_id: id } });
+
+    // Delete the restaurant
+    await restaurant.destroy();
+
+    res.json({
+      message: 'Xóa nhà hàng thành công',
+      deletedItems: {
+        menuItems: menuItemCount,
+        restaurant: restaurant.name
+      }
+    });
+  } catch (error) {
+    console.error('Delete restaurant error:', error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
 // ===== ORDER MANAGEMENT =====
 
 // GET /api/admin/orders - Get all orders with optional restaurant filter

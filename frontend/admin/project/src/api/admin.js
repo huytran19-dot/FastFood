@@ -150,6 +150,23 @@ export async function rejectRestaurant(restaurant_id, reason) {
   return await response.json();
 }
 
+export async function deleteRestaurant(restaurant_id) {
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/admin/restaurants/${restaurant_id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || error.reason || 'Failed to delete restaurant');
+  }
+  
+  return await response.json();
+}
+
 /* ==================== DRONES ==================== */
 export async function getDrones() {
   const token = getAuthToken();

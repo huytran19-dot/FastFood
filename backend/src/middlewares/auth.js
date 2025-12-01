@@ -30,6 +30,34 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: 'Người dùng không tồn tại' });
     }
 
+    // Check if user account is active
+    if (user.status !== 1) {
+      return res.status(403).json({ 
+        message: 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ admin.',
+        code: 'ACCOUNT_DISABLED'
+      });
+    }
+
+    // If user is restaurant owner, check restaurant status
+    if (user.role?.name === 'restaurant') {
+      const restaurant = await db.restaurants.findOne({
+        where: { owner_id: user.id }
+      });
+
+      if (restaurant) {
+        // Block access if restaurant is disabled (status = 0)
+        if (restaurant.status !== 1) {
+          return res.status(403).json({ 
+            message: 'Nhà hàng của bạn đã bị vô hiệu hóa. Vui lòng liên hệ admin.',
+            code: 'RESTAURANT_DISABLED'
+          });
+        }
+
+        // Attach restaurant to request for later use
+        req.restaurant = restaurant;
+      }
+    }
+
     req.user = user;
     next();
   } catch (error) {
